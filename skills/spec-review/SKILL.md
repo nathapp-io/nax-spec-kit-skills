@@ -112,7 +112,7 @@ Checks:
    caller's path, and asserts the symbol was invoked with expected arguments.
    Symbol-exists tests alone satisfy "make tests green" without integrating.
 5. **Removal / absence is not an AC.** Removal claims belong in the host
-   project's build/static gate (compiler/linter/`nax verify`), recorded as a
+   project's build/static gate (compiler/linter/`bun run typecheck`), recorded as a
    verification note — not in `acceptanceCriteria`. An AC asserting "no file
    contains X" is a blocker.
 6. **Meta-AC backing.** ACs asserting architectural properties (e.g. "only N
@@ -140,7 +140,7 @@ Checks:
    just that X exists.
 3. **Removal-keyword sweep.** Scan spec body and story summaries for
    `delete|remove|consolidate|retire|rename`. Each match must trace to a
-   **build/static-gate verification note** (compiler/linter/`nax verify` confirms
+   **build/static-gate verification note** (compiler/linter/`bun run typecheck` confirms
    the symbol is gone) — not to an acceptance criterion. A removal encoded as a
    file-content "does not contain" AC is a blocker.
 4. **Deletion isolation.** Stories that contain both additive ACs and destructive

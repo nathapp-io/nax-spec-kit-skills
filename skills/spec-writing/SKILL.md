@@ -128,7 +128,7 @@ Estimate AC count and files touched from the intent + design notes. Apply the gu
 Detect **removal keywords** in the intent (`delete|remove|consolidate|retire|rename|migrate`). If any present:
 
 - Plan a **terminal-cleanup story** at the end of the dependency chain.
-- The terminal story is **deletion-only**: no new code — file deletions, caller migrations, import removals. Its removals are verified by the host project's build/static gate (compiler, linter, `nax verify`), not by runtime acceptance criteria; record the gate command in the story's verification note.
+- The terminal story is **deletion-only**: no new code — file deletions, caller migrations, import removals. Its removals are verified by the host project's build/static gate (compiler, linter, `bun run typecheck`), not by runtime acceptance criteria; record the gate command in the story's verification note.
 
 Detect **producer/consumer seams**. A seam exists when story A introduces a **new externally-visible symbol** — anything added to a barrel/`index.ts`, exported from a module entry point, or otherwise callable from outside its declaring file — and story B is expected to call it. Pure internal helpers (file-local functions, non-exported types) do not need seam ACs.
 
@@ -159,7 +159,7 @@ For each story, draft ACs in two tracks:
 - **Type / shape** → construct or obtain the value, assert its type/fields/return shape.
 - **Config field default** → construct the config with the field unset, assert the resolved value equals the documented default.
 - **New exported symbol from Track A** → pair with a **seam AC** (the **two-anchor rule**): the consumer's `[unit]`/`[integration]` test stubs the new symbol, triggers the consumer's production path, and asserts the symbol was invoked with the expected arguments. This proves *used*, not just *present*.
-- **Removal / absence** → **not** an acceptance criterion. Deleting a symbol is a compile error in statically-typed languages (Go, Rust, C++, TS) and only a weak runtime check in dynamic ones — neither is a fail-first-then-pass test an agent can implement. Route removal to the host project's **build/static gate** (compiler, linter, `nax verify`) and record the gate command in the story's verification note. (For a dynamic-language project where "accessing the removed member raises the language's missing-member error" is meaningful, a `[unit]` test is *optional*, not required.)
+- **Removal / absence** → **not** an acceptance criterion. Deleting a symbol is a compile error in statically-typed languages (Go, Rust, C++, TS) and only a weak runtime check in dynamic ones — neither is a fail-first-then-pass test an agent can implement. Route removal to the host project's **build/static gate** (compiler, linter, `bun run typecheck`) and record the gate command in the story's verification note. (For a dynamic-language project where "accessing the removed member raises the language's missing-member error" is meaningful, a `[unit]` test is *optional*, not required.)
 - **Meta-ACs** (architectural invariants like "only N edit points") → if it isn't a runtime behaviour an implementer can test, it's not an AC. Express it as the build/static gate, or drop it.
 
 After drafting:
@@ -183,13 +183,13 @@ Name the function/symbol, the inputs, and the expected output/exception/side-eff
 | `[file]` `path/file` contains a line matching `^def foo\(` | `[unit]` calling `foo()` with `<inputs>` returns `<expected>` (and `foo` is importable from `<module>`). |
 | `[file]` `file` contains the substring `BacktestCancelled` | `[unit]` `BacktestCancelled` is importable from `<module>` and is a subtype of the language's base error type. |
 | `[file]` `file` contains field `timeout` with default `30` | `[unit]` constructing `Config` with `timeout` unset yields `config.timeout == 30`. |
-| `[file]` no file under `src/` contains `old_symbol` | *(not an AC)* removal verified by build/static gate — note: `<build/lint/nax verify command>`. |
+| `[file]` no file under `src/` contains `old_symbol` | *(not an AC)* removal verified by build/static gate — note: `<build/lint command, e.g. bun run typecheck>`. |
 | `` `grep -nE "PAT" path` returns 1 match `` | `[integration]` stub `<callee>`; trigger `<production path>`; assert `<callee>` called once with `<args>`. |
 | `readFileSync(path).includes("X")` / `assert "X" in open(path).read()` | name the runtime behaviour that the presence of `X` is supposed to enable, and assert *that*. |
 
 State the **behaviour**, not the implementation and not the source text. "Symbol is present in the file" is a meta-test about source text: it passes when the name is pasted anywhere — even in a comment — and proves nothing about whether the symbol is importable, correctly typed, or wired into a caller. Assert the behaviour the symbol enables instead.
 
-**Why:** `prd.json` ACs run as agent-implemented tests, not as a static grep gate. A file-content assertion (1) passes as soon as the string appears anywhere in the file, (2) never verifies the symbol is importable/usable/typed, and (3) gives the implementer no signal about what the symbol must *do*. Negative-grep assertions ("no file contains X") can't be expressed as a runtime test at all. Shell pipelines and language-specific assertion APIs additionally break the polyglot generator. Language-neutral behavioural prose is the only form that survives `nax plan` into an executable, meaningful test. Static greps that you still want as a CI gate belong in `nax verify` / a linter, never in `acceptanceCriteria`.
+**Why:** `prd.json` ACs run as agent-implemented tests, not as a static grep gate. A file-content assertion (1) passes as soon as the string appears anywhere in the file, (2) never verifies the symbol is importable/usable/typed, and (3) gives the implementer no signal about what the symbol must *do*. Negative-grep assertions ("no file contains X") can't be expressed as a runtime test at all. Shell pipelines and language-specific assertion APIs additionally break the polyglot generator. Language-neutral behavioural prose is the only form that survives `nax plan` into an executable, meaningful test. Static greps that you still want as a CI gate belong in `bun run typecheck` / a linter, never in `acceptanceCriteria`.
 
 **Output (written to file):** Acceptance Criteria section, per-story AC blocks with verification anchors. At this point the spec file is structurally complete.
 
@@ -259,7 +259,7 @@ Phase 3 is skipped. Phase 4 may produce simpler decomposition (often 1-2 stories
 
 ### Removal-heavy specs
 
-When the intent is dominated by deletions (consolidation specs, dead-code cleanup), Phase 4 will produce a terminal-cleanup story that's the bulk of the work. Its removals are verified by the host project's build/static gate (the compiler/linter rejects references to deleted symbols; `nax verify` or a lint step confirms absence) — recorded as a verification note on the story, **not** as runtime acceptance criteria. Don't pad with behavioural ACs to make it feel "balanced," and don't invent file-content "does not contain" ACs — those aren't agent-implementable tests.
+When the intent is dominated by deletions (consolidation specs, dead-code cleanup), Phase 4 will produce a terminal-cleanup story that's the bulk of the work. Its removals are verified by the host project's build/static gate (the compiler/linter rejects references to deleted symbols; `bun run typecheck` or a lint step confirms absence) — recorded as a verification note on the story, **not** as runtime acceptance criteria. Don't pad with behavioural ACs to make it feel "balanced," and don't invent file-content "does not contain" ACs — those aren't agent-implementable tests.
 
 ## Output format
 

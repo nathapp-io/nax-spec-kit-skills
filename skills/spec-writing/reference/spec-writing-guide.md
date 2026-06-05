@@ -90,7 +90,7 @@ spec freely and is the documented cause of the US-005 drift.
 **Terminal-cleanup story rule.** When a spec includes any removal/rename/consolidation
 ACs, the last story must be **deletion-only** — no new code, only file deletions,
 caller migrations, and import removals. Removals are verified by the build/static
-gate (compiler, linter, `nax verify`), not by runtime ACs — record the gate
+gate (compiler, linter, `bun run typecheck`), not by runtime ACs — record the gate
 command in the story's verification note. This prevents the well-known attractor
 where additive slices land green and cleanup is silently dropped.
 
@@ -125,13 +125,13 @@ For new projects with no existing code, list the files the story will **create**
 
 When a story deletes, renames, consolidates, or replaces existing code, removal
 is **not** expressed as an AC. Deleting a symbol is a compile error in statically-typed
-languages — the build/static gate (compiler, linter, `nax verify`) is the verification
+languages — the build/static gate (compiler, linter, `bun run typecheck`) is the verification
 mechanism. Record the gate command in the story's verification note, not in
 `acceptanceCriteria`.
 
 Every story whose summary or design contains "remove", "delete", "consolidate",
 "replace", "migrate", or "rename" must include:
-- A **verification note** naming the gate command (e.g. `bun run typecheck`, `bun run lint`, `nax verify`)
+- A **verification note** naming the gate command (e.g. `bun run typecheck`, `bun run lint`)
 - A **behavioural AC** proving the capability is preserved after the removal
 
 ### Example — removal story for `runThreeSessionTdd`
@@ -195,7 +195,7 @@ the production caller invokes it (see Seams above).
 ACs that assert architectural properties ("adding a new phase requires edits
 in three places," "wrapper is read-only over `phaseOutputs`") are not runtime
 behaviours an implementer can write as a fail-first test. Route them to the
-build/static gate (compiler, linter, `nax verify`) and record the gate command
+build/static gate (compiler, linter, `bun run typecheck`) and record the gate command
 in the story's verification note — do not encode them as ACs.
 
 ❌ **Aspirational AC:**
