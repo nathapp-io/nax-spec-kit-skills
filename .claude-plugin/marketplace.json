@@ -1,0 +1,20 @@
+{
+  "name": "nax-spec-kit",
+  "description": "Marketplace hosting the nax-spec-kit plugin (spec-writing + spec-review skills).",
+  "owner": {
+    "name": "William Khoo",
+    "email": "william_khoo@outlook.com"
+  },
+  "plugins": [
+    {
+      "name": "nax-spec-kit",
+      "description": "Spec authoring + audit workflow: spec-writing and spec-review skills.",
+      "version": "0.1.0",
+      "source": "./",
+      "author": {
+        "name": "William Khoo",
+        "email": "william_khoo@outlook.com"
+      }
+    }
+  ]
+}
