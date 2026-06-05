@@ -336,16 +336,19 @@ Without this, the agent either ignores errors entirely or adds overly defensive 
 ## Real Example
 
 **Bad spec (vague):**
-> Add a post-run action system to the plugin framework.
-> Stories: 1) Add types 2) Add registry 3) Add runner integration
+> Add config validation.
+> Stories: 1) Add validator 2) Wire it in 3) Clean up
 
 **Good spec:**
-> See `docs/specs/SPEC-post-run-actions.md` — includes:
-> - Interface definitions with TypeScript signatures
-> - Per-story ACs with function names and expected behavior
-> - Context files pointing to existing patterns
-> - Clear dependency chain (US-001 → US-002 → US-003)
+> See [../examples/SPEC-example.md](../examples/SPEC-example.md) — a complete,
+> guide-conformant spec that includes:
+> - Interface definitions with signatures (Design § Integration)
+> - Per-story behavioural ACs (`[unit]`/`[integration]`) with function names and expected behaviour
+> - Context Files pointing to the files each story touches
+> - A clear dependency chain (US-001 → US-002 → US-003)
+> - A **seam AC** wiring producer to consumer, and a **terminal-cleanup story**
+>   whose removal is verified by the build/static gate (no `[verbatim]`/grep ACs)
 
 ---
 
-*See also: `docs/specs/` for real spec examples.*
+*See also: [../examples/SPEC-example.md](../examples/SPEC-example.md) for the complete worked example.*
