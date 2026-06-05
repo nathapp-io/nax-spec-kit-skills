@@ -11,7 +11,7 @@ project-level):
 
 ```json
 {
-  "plugin": ["nax-spec-kit@git+https://github.com/<github-user>/nax-spec-kit.git"]
+  "plugin": ["nax-spec-kit@git+https://github.com/nathapp-io/nax-spec-kit-skills.git"]
 }
 ```
 
@@ -57,7 +57,7 @@ To pin a specific version:
 
 ```json
 {
-  "plugin": ["nax-spec-kit@git+https://github.com/<github-user>/nax-spec-kit.git#v0.1.0"]
+  "plugin": ["nax-spec-kit@git+https://github.com/nathapp-io/nax-spec-kit-skills.git#v0.1.0"]
 }
 ```
 

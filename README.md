@@ -31,7 +31,7 @@ This repo is its own plugin marketplace (`.claude-plugin/`). Add it, then instal
 /plugin install nax-spec-kit@nax-spec-kit
 
 # Or, once pushed to GitHub:
-/plugin marketplace add <github-user>/nax-spec-kit
+/plugin marketplace add nathapp-io/nax-spec-kit-skills
 /plugin install nax-spec-kit@nax-spec-kit
 ```
 
@@ -54,7 +54,7 @@ Quick version — add to your `opencode.json`:
 
 ```json
 {
-  "plugin": ["nax-spec-kit@git+https://github.com/<github-user>/nax-spec-kit.git"]
+  "plugin": ["nax-spec-kit@git+https://github.com/nathapp-io/nax-spec-kit-skills.git"]
 }
 ```
 

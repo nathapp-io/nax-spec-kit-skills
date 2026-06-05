@@ -4,6 +4,11 @@
   "description": "Spec authoring + audit workflow skills (spec-writing + spec-review) for coding agents.",
   "type": "module",
   "main": ".opencode/plugins/nax-spec-kit.js",
+  "homepage": "https://github.com/nathapp-io/nax-spec-kit-skills",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nathapp-io/nax-spec-kit-skills.git"
+  },
   "license": "MIT",
   "author": {
     "name": "William Khoo",
