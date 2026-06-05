@@ -52,19 +52,26 @@ export class ConfigValidator {
 2. **US-002: Loader integration** — call the validator from `loadConfig()`. Depends on US-001.
 3. **US-003: Retire `checkConfig()`** — terminal-cleanup, deletion-only. Depends on US-002.
 
-### Context Files
+### Context Files / Creates
 
-**US-001**
-- `src/config/types.ts` — where `ValidationResult` is declared (to be created)
-- `src/config/validator.ts` — core validator (to be created)
+> `Context Files` = existing files to **read** (must exist → `contextFiles`).
+> `Creates` = new files the story **authors** (do not exist yet → `expectedFiles`).
+> A single path belongs to exactly one list.
+
+**US-001** (greenfield — only creates)
+- Creates:
+  - `src/config/types.ts` — where `ValidationResult` is declared
+  - `src/config/validator.ts` — core validator
 
 **US-002**
-- `src/config/loader.ts` — `loadConfig()`; replace the `checkConfig()` call site
-- `src/config/errors.ts` — existing `ConfigError` shape to follow
+- Context Files:
+  - `src/config/loader.ts` — `loadConfig()`; replace the `checkConfig()` call site
+  - `src/config/errors.ts` — existing `ConfigError` shape to follow
 
 **US-003**
-- `src/config/legacy-check.ts` — `checkConfig()` to delete
-- `src/config/loader.ts` — remove the last reference once US-002 lands
+- Context Files:
+  - `src/config/legacy-check.ts` — `checkConfig()` to delete
+  - `src/config/loader.ts` — remove the last reference once US-002 lands
 
 ### Seams
 

@@ -115,9 +115,15 @@ This is a **light symbol audit** — not the full Phase 1 of spec-review. Its pu
 
 Estimate AC count and files touched from the intent + design notes. Apply the guide's **hard sizing bounds**:
 
+> **Reads vs creates (see guide § Context Hints).** Per story, separate the files
+> into a `Context Files` list (existing files to **read** → `contextFiles`) and a
+> `Creates` list (new files the story **authors** → `expectedFiles`). Never list a
+> to-be-created file under `Context Files` — it trips a false "Relevant file not
+> found" warning at runtime and loses the create-intent hint.
+
 **Must split** (lower bound enforcement):
 - >8 ACs in one story
-- Context Files list >5
+- Context Files list >5 (the read list; `Creates` is counted separately)
 - Story mixes additive ACs ("add X") and destructive ACs ("delete Y", "rename Z", "consolidate W") — split with destruction in a terminal-cleanup story
 - Story has both "add new feature" and "refactor existing code"
 
@@ -140,7 +146,7 @@ Propose the story list with dependencies to the user. Confirm before proceeding.
 
 **Blocker:** sizing breach not resolved (over or under); removal keywords present with no terminal-cleanup story planned; new externally-visible symbol without a planned seam AC for its consumer story.
 
-**Output (written to file):** Stories section with 3-5 stories, dependency chain, Context Files per story, terminal-cleanup story if applicable, and a `### Seams` block listing cross-story invariants.
+**Output (written to file):** Stories section with 3-5 stories, dependency chain, `Context Files` (reads) and `Creates` (new files) per story, terminal-cleanup story if applicable, and a `### Seams` block listing cross-story invariants.
 
 ### Phase 5 — AC drafting
 

@@ -104,6 +104,14 @@ where additive slices land green and cleanup is silently dropped.
 
 Every story **must** list relevant context files. Without them, the agent guesses which patterns to follow.
 
+Two distinct lists with two distinct meanings — **never mix them**:
+
+### `Context Files` → files to **read** (must already exist)
+
+These are existing reference files the agent reads before coding. The plan phase
+populates `contextFiles` in the PRD from this list; the runtime asserts each one
+exists and warns ("Relevant file not found") when it doesn't.
+
 ```markdown
 ### Context Files
 - `src/plugins/extensions.ts` — existing extension interfaces (follow this pattern)
@@ -111,15 +119,27 @@ Every story **must** list relevant context files. Without them, the agent guesse
 - `test/unit/plugins/registry.test.ts` — existing test patterns
 ```
 
-The plan phase uses these to populate `contextFiles` in the PRD, which the agent reads before coding.
+**Do NOT list a file the story creates here.** A to-be-created file does not
+exist on disk, so listing it under `Context Files` makes the runtime emit a false
+"Relevant file not found" warning and the create-intent hint is lost.
 
-For new projects with no existing code, list the files the story will **create** and their purpose:
+### `Creates` → files to **author** (do not exist yet)
+
+New files the story produces. The plan phase maps this list to `expectedFiles`
+in the PRD — a post-execution asset gate, NOT a read list. Absence on disk is
+expected, so no warning fires; the agent still receives the path as a
+"you will create this" hint.
 
 ```markdown
-### Context Files
-- `src/validator.ts` — core validation logic (to be created)
-- `src/types.ts` — all interfaces defined in Design section (to be created)
+### Creates
+- `src/validator.ts` — core validation logic
+- `src/types.ts` — all interfaces defined in the Design section
 ```
+
+A file may appear in **`Context Files`** (a sibling to mirror) and **`Creates`**
+(the new file itself) across the same story — but a single path belongs to exactly
+one list. For a greenfield project with no existing code, a story may have only a
+`Creates` list and no `Context Files`.
 
 ## Removal & Migration ACs
 
