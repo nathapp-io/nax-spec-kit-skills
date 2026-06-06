@@ -57,7 +57,7 @@ To pin a specific version:
 
 ```json
 {
-  "plugin": ["nax-spec-kit@git+https://github.com/nathapp-io/nax-spec-kit-skills.git#v0.1.0"]
+  "plugin": ["nax-spec-kit@git+https://github.com/nathapp-io/nax-spec-kit-skills.git#v0.1.3"]
 }
 ```
 
