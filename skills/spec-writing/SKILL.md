@@ -116,10 +116,16 @@ This is a **light symbol audit** — not the full Phase 1 of spec-review. Its pu
 Estimate AC count and files touched from the intent + design notes. Apply the guide's **hard sizing bounds**:
 
 > **Reads vs creates (see guide § Context Hints).** Per story, separate the files
-> into a `Context Files` list (existing files to **read** → `contextFiles`) and a
+> into a `Context Files` list (files the story **reads** → `contextFiles`) and a
 > `Creates` list (new files the story **authors** → `expectedFiles`). Never list a
-> to-be-created file under `Context Files` — it trips a false "Relevant file not
-> found" warning at runtime and loses the create-intent hint.
+> file **this story** creates under its own `Context Files` — it trips a false
+> "Relevant file not found" warning at runtime and loses the create-intent hint.
+> **Exception — cross-story produced files:** a file an **upstream dependency**
+> story creates may be listed under a consumer story's `Context Files` (annotate
+> it, e.g. `` `ProposalCard.tsx` — created by US-002, integrated here ``). It is
+> absent at plan time but exists at the consumer's runtime (dependencies run
+> first), so it is a legitimate read — not a file this story authors. See
+> guide § Context Hints.
 
 **Must split** (lower bound enforcement):
 - >8 ACs in one story

@@ -106,22 +106,35 @@ Every story **must** list relevant context files. Without them, the agent guesse
 
 Two distinct lists with two distinct meanings — **never mix them**:
 
-### `Context Files` → files to **read** (must already exist)
+### `Context Files` → files to **read** (exist by the time this story runs)
 
-These are existing reference files the agent reads before coding. The plan phase
-populates `contextFiles` in the PRD from this list; the runtime asserts each one
-exists and warns ("Relevant file not found") when it doesn't.
+These are reference files the agent reads before coding. The plan phase populates
+`contextFiles` in the PRD from this list; the runtime emits a "Relevant file not
+found" **warning** (not a hard error — the run continues) for any entry missing at
+the consuming story's runtime.
+
+"Exist by the time this story runs" covers two cases:
+1. **Already on disk** — existing reference files (the common case).
+2. **Created by an upstream dependency** — a file a story this one `depends on`
+   authors. It is absent at plan time but present at this story's runtime
+   (dependencies run first: sequential mode shares the workdir; parallel mode
+   merges each batch to `HEAD` before the next branches from it). Annotate it with
+   its producer so the hand-off is explicit.
 
 ```markdown
 ### Context Files
 - `src/plugins/extensions.ts` — existing extension interfaces (follow this pattern)
 - `src/plugins/registry.ts` — registry getter pattern to replicate
+- `apps/web/components/ProposalCard.tsx` — created by US-002, integrated here
 - `test/unit/plugins/registry.test.ts` — existing test patterns
 ```
 
-**Do NOT list a file the story creates here.** A to-be-created file does not
-exist on disk, so listing it under `Context Files` makes the runtime emit a false
-"Relevant file not found" warning and the create-intent hint is lost.
+**Do NOT list a file _this story_ creates here.** A file the *current* story
+authors does not exist at its own runtime, so listing it under `Context Files`
+makes the runtime emit a false "Relevant file not found" warning and the
+create-intent hint is lost — it belongs in `Creates`. This prohibition is
+specific to self-created files; a file an **upstream dependency** creates is a
+legitimate read (case 2 above), not a self-create.
 
 ### `Creates` → files to **author** (do not exist yet)
 

@@ -177,8 +177,44 @@ Checks:
    scope bleed — typically from `nax plan`'s candidate-PRD merge feature.
    Common signatures: PRD AC introduces new enum values, new status codes, new
    config keys, or new validation behaviour not in the spec.
-4. **Context-file delta.** PRD `userStories[].contextFiles` should be a subset
-   of (or equal to) the spec's `Context Files` list. Additions are flagged.
+4. **File-role delta (`contextFiles` vs `expectedFiles`).** The nax PRD splits a
+   story's files into two roles with **different semantics** — do not conflate
+   them (see [§PRD file-role schema](#prd-file-role-schema-phase-9)):
+   - `contextFiles` = files the agent **reads** for context. They exist by the
+     time **this story** runs — already on disk, or created by an **upstream
+     dependency** that runs first. Maps from the spec story's **`Context Files`**.
+   - `expectedFiles` = files **this story** creates. Maps from the spec story's
+     **`Creates`**.
+
+   Checks:
+   - **a. `Creates` → `expectedFiles`.** Each file in the spec story's `Creates`
+     list (files **this** story authors) should appear in that story's PRD
+     `expectedFiles`, never `contextFiles`. A self-created file placed in
+     `contextFiles` is a **blocker** — at this story's own runtime the file does
+     not exist, so it emits a missing-context warning and the create-intent hint
+     is lost.
+   - **b. `Context Files` → `contextFiles`, gated on existence.** Each spec
+     `Context Files` entry that **exists on disk** should appear in the PRD
+     `contextFiles`. A genuinely-existing context file that was dropped is a major.
+   - **c. Cross-story produced files belong in the consumer's `contextFiles`.**
+     A file that is absent on disk because an **upstream dependency** story creates
+     it (it's in a prior story's `Creates` / `expectedFiles`) **exists at this
+     story's runtime** — dependencies run first (sequential: shared workdir;
+     parallel: each batch merges to `HEAD` before the next branches from it). So:
+     - In the consumer's `contextFiles` (planner kept it) → **correct, not a
+       finding.**
+     - Dropped from the consumer's `contextFiles`, **or** mis-moved into the
+       **consumer's** `expectedFiles` (the consumer does not author it) →
+       **fidelity finding (major):** the spec listed it as a read; the PRD lost or
+       corrupted the read hint. Remediation is upstream — `nax plan`'s
+       `normalizeCreatedContextFiles` must keep upstream-produced files in
+       `contextFiles` (it now consults the dependency graph). Do **not** hand-edit
+       the PRD against a planner that would re-strip it; flag the planner.
+       Confirm the producer relationship by checking the file appears in an
+       upstream dependency's `Creates`/`expectedFiles` before flagging.
+   - **d. Helpful additions.** Extra **existing** files the planner added to
+     `contextFiles` that aren't in the spec are a minor (usually useful context),
+     not a blocker.
 5. **Meta-AC survival.** Spec meta-ACs (architectural invariants) must survive —
    either as a runtime PRD AC or as a build/static-gate verification note. Silent
    deletion is a blocker.
@@ -190,7 +226,19 @@ Checks:
 **Blocker:** spec AC missing from PRD; behavioural AC degraded into a
 file-content/grep AC or stripped of its asserted behaviour; meta-AC deleted;
 orphan PRD AC introducing material scope; terminal-cleanup story missing or
-contaminated with additive ACs.
+contaminated with additive ACs; a self-`Creates` file placed in `contextFiles`
+instead of `expectedFiles`.
+
+**Major:** an upstream-dependency-produced file the spec listed under a consumer
+story's `Context Files` that the PRD dropped from `contextFiles` or mis-moved into
+the consumer's `expectedFiles` (the read hint was lost or corrupted; the run still
+proceeds because the file exists at runtime, so it is a major, not a blocker —
+see §4c).
+
+**Not a finding:** an upstream-produced file correctly **kept** in the consumer
+story's `contextFiles` (it exists at that story's runtime because the producer ran
+first). A self-created file absent from `contextFiles` because it is correctly in
+the same story's `expectedFiles` is also not a finding.
 
 **Output:** writes `prd-fidelity-report.md` in the same directory as `prd.json`
 (e.g. `.nax/features/<feature>/prd-fidelity-report.md` for nax projects),
@@ -199,6 +247,35 @@ This artefact is the gate that should run **after** the planner step and
 **before** the first story executes.
 
 ## Operational rules
+
+### PRD file-role schema (Phase 9)
+
+A nax `prd.json` story carries **two** file lists with distinct semantics. Phase 9
+must respect the split. The discriminator is **runtime existence relative to
+dependency order**, not plan-time existence:
+
+| PRD key | Meaning | Existence at **this story's runtime** | Maps from spec | Verify with |
+|---|---|---|---|---|
+| `contextFiles` | files the agent **reads** for context | on disk (already present, or created by an upstream dependency) | story `Context Files` | `ls`, or check upstream deps' `Creates` |
+| `expectedFiles` | files **this story** creates | created by this story | story `Creates` | absent before the story runs |
+
+A missing `contextFiles` entry at runtime is a **warning** (`Relevant file not
+found`), not a hard error — the run continues. See
+`docs/architecture/spec-to-prd-pipeline.md` in the host nax repo for the full
+model.
+
+Consequences for the audit:
+- A spec `Context Files` entry produced by an **upstream dependency** story
+  **belongs in** the consumer's `contextFiles` — it exists at the consumer's
+  runtime because dependencies run first (sequential: shared workdir; parallel:
+  each batch merges to `HEAD` before the next branches). If the planner kept it,
+  that is correct. If the planner **dropped** it or **mis-moved** it into the
+  consumer's `expectedFiles`, that is a fidelity finding — the fix is in
+  `nax plan` (`normalizeCreatedContextFiles` is now dependency-aware), not a
+  hand-edit. Confirm the producer link (file is in an upstream dep's
+  `Creates`/`expectedFiles`) before flagging.
+- A file **this story** creates belongs in `expectedFiles`. Finding it in the same
+  story's `contextFiles` is a blocker.
 
 ### Project rule discovery (mandatory before Phase 3)
 
