@@ -39,8 +39,20 @@ Restart or `/clear` the session after installing so the skills are discovered.
 
 ### Codex CLI
 
-Manifest at `.codex-plugin/plugin.json`. Install via Codex's plugin interface
-(`/plugins` → search/add this repo), or point Codex at a local checkout.
+This repo is also a Codex marketplace. Add it, then install:
+
+```bash
+# From a local clone:
+codex plugin marketplace add /path/to/nax-spec-kit-skills
+codex plugin add nax-spec-kit@nax-spec-kit
+
+# Or, once pushed to GitHub:
+codex plugin marketplace add nathapp-io/nax-spec-kit-skills
+codex plugin add nax-spec-kit@nax-spec-kit
+```
+
+The marketplace entry lives at `.agents/plugins/marketplace.json`, and the
+installable Codex plugin lives at `plugins/nax-spec-kit/`.
 
 ### Cursor
 
@@ -77,7 +89,12 @@ You can also just say "draft the spec for X" or "review this spec against the co
   plugin.json        # Claude Code plugin manifest
   marketplace.json   # self-hosted marketplace entry
 .codex-plugin/
-  plugin.json        # Codex CLI manifest (skills → ../skills/)
+  plugin.json        # Root Codex manifest (skills → ../skills/)
+.agents/plugins/
+  marketplace.json   # Codex marketplace entry for this repo
+plugins/nax-spec-kit/
+  .codex-plugin/plugin.json   # Marketplace-installed Codex plugin
+  skills -> ../../skills      # Reuses the shared skills tree
 .cursor-plugin/
   plugin.json        # Cursor manifest (skills → ../skills/)
 .opencode/
