@@ -1,7 +1,7 @@
 {
   "name": "nax-spec-kit",
-  "version": "0.1.4",
-  "description": "Spec authoring + audit workflow for coding agents: spec-writing (brainstorm \u2192 SPEC-*.md) and spec-review (ground a spec against the real codebase before implementation).",
+  "version": "0.1.5",
+  "description": "Spec authoring + audit workflow for coding agents: spec-writing (brainstorm → SPEC-*.md) and spec-review (ground a spec against the real codebase before implementation).",
   "author": {
     "name": "William Khoo",
     "email": "william_khoo@outlook.com"
@@ -21,7 +21,7 @@
   "interface": {
     "displayName": "nax-spec-kit",
     "shortDescription": "Spec authoring + codebase-grounded spec review for coding agents",
-    "longDescription": "Use nax-spec-kit to convert a brainstorm into a guide-conformant SPEC-*.md (spec-writing) and to audit that spec against the actual codebase \u2014 catching API hallucination, shape contradictions, convention violations, behavioral drift, sizing breaches, and stale references \u2014 before implementation (spec-review).",
+    "longDescription": "Use nax-spec-kit to convert a brainstorm into a guide-conformant SPEC-*.md (spec-writing) and to audit that spec against the actual codebase — catching API hallucination, shape contradictions, convention violations, behavioral drift, sizing breaches, and stale references — before implementation (spec-review).",
     "developerName": "William Khoo",
     "category": "Coding",
     "capabilities": [
@@ -34,6 +34,6 @@
       "Review this spec against the codebase."
     ],
     "brandColor": "#2563EB",
-    "screenshots": []
+    "websiteURL": "https://github.com/nathapp-io/nax-spec-kit-skills"
   }
 }

@@ -1,11 +1,15 @@
 {
   "name": "nax-spec-kit",
+  "description": "Spec authoring + codebase-grounded spec review skills for coding agents (spec-writing + spec-review).",
+  "owner": { "name": "William Khoo", "email": "william_khoo@outlook.com" },
   "interface": {
     "displayName": "nax-spec-kit"
   },
   "plugins": [
     {
       "name": "nax-spec-kit",
+      "description": "Convert a brainstorm into a guide-conformant SPEC-*.md (spec-writing) and audit that spec against the actual codebase before implementation (spec-review).",
+      "version": "0.1.5",
       "source": {
         "source": "local",
         "path": "./plugins/nax-spec-kit"

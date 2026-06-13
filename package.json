@@ -1,9 +1,15 @@
 {
   "name": "nax-spec-kit",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Spec authoring + audit workflow skills (spec-writing + spec-review) for coding agents.",
   "type": "module",
   "main": ".opencode/plugins/nax-spec-kit.js",
+  "scripts": {
+    "sync:codex-skills": "node scripts/sync-codex-plugin-skills.mjs",
+    "verify:codex-skills": "node scripts/verify-codex-plugin-skills.mjs",
+    "test:codex-marketplace": "node scripts/verify-codex-marketplace.mjs",
+    "prepare:codex-release": "npm run sync:codex-skills && npm run verify:codex-skills && npm run test:codex-marketplace"
+  },
   "homepage": "https://github.com/nathapp-io/nax-spec-kit-skills",
   "repository": {
     "type": "git",

@@ -52,7 +52,22 @@ codex plugin add nax-spec-kit@nax-spec-kit
 ```
 
 The marketplace entry lives at `.agents/plugins/marketplace.json`, and the
-installable Codex plugin lives at `plugins/nax-spec-kit/`.
+installable Codex plugin lives at `plugins/nax-spec-kit/`. In a Codex thread,
+invoke it explicitly with `@nax-spec-kit ...` or just describe the task — the
+bundled skills (`spec-writing`, `spec-review`) auto-activate on their trigger
+phrases.
+
+**Maintaining the Codex skill payload**
+
+Edit only the canonical root `skills/` tree. The marketplace payload under
+`plugins/nax-spec-kit/skills/` is generated release content for Codex (a real
+directory, not a symlink — Codex installs don't follow symlinks).
+
+```bash
+npm run sync:codex-skills      # rebuild packaged Codex skills from skills/
+npm run verify:codex-skills    # fail if packaged skills drift from skills/
+npm run prepare:codex-release  # sync + verify + marketplace verification
+```
 
 ### Cursor
 
@@ -88,13 +103,13 @@ You can also just say "draft the spec for X" or "review this spec against the co
 .claude-plugin/
   plugin.json        # Claude Code plugin manifest
   marketplace.json   # self-hosted marketplace entry
-.codex-plugin/
-  plugin.json        # Root Codex manifest (skills → ../skills/)
 .agents/plugins/
   marketplace.json   # Codex marketplace entry for this repo
+.codex-plugin/
+  plugin.json        # Optional repo-root Codex manifest for direct local testing
 plugins/nax-spec-kit/
   .codex-plugin/plugin.json   # Marketplace-installed Codex plugin
-  skills -> ../../skills      # Reuses the shared skills tree
+  skills/                     # Real skill payload included in install root
 .cursor-plugin/
   plugin.json        # Cursor manifest (skills → ../skills/)
 .opencode/
