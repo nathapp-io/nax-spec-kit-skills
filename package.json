@@ -1,6 +1,6 @@
 {
   "name": "nax-spec-kit",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Spec authoring + audit workflow skills (spec-writing + spec-review) for coding agents.",
   "type": "module",
   "main": ".opencode/plugins/nax-spec-kit.js",

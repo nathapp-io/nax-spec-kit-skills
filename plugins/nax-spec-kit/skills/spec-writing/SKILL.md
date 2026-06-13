@@ -141,8 +141,10 @@ Estimate AC count and files touched from the intent + design notes. Apply the gu
 - Story has both "add new feature" and "refactor existing code"
 
 **Must merge** (upper bound enforcement):
-- More than 7 stories in the spec — over-decomposition is the symmetric failure of over-bundling. Merge stories that share a module and have <4 ACs each, or where one is meaningless without the other.
-- Target: **3-7 stories per spec**. Single-story specs are acceptable for tiny features.
+- More than 7 stories in the spec — over-decomposition is the symmetric failure of over-bundling.
+- Merge two stories when **either** condition holds: (a) they share a module and at least one has <4 ACs; or (b) one is meaningless without the other (regardless of module). **Never merge if the result would breach a Must-split rule above** (e.g. >15 ACs combined, additive+destructive mix) — leave them separate.
+- **Cost tiebreaker:** if the feature can be expressed in N-1 stories without breaching any Must-split rule, prefer N-1. Story count is driven up by split rules, never by a preference to decompose.
+- **Soft target 3-5, hard ceiling 7.** Each story is its own plan/implement/review pass, so count is ~linear in cost. Reserve the 6th/7th story for features that *structurally* need it — a dependency chain, a terminal-cleanup story, or a producer/consumer seam. If a story exists only because the work "felt separable," merge it. Single-story specs are acceptable for tiny features.
 
 Detect **removal keywords** in the intent (`delete|remove|consolidate|retire|rename|migrate`). If any present:
 
