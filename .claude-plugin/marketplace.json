@@ -9,7 +9,7 @@
     {
       "name": "nax-spec-kit",
       "description": "Spec authoring + audit workflow: spec-writing and spec-review skills.",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "source": "./",
       "author": {
         "name": "William Khoo",
