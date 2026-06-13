@@ -14,7 +14,7 @@ brainstorming        → spec-writing             → spec-review        → pla
 (intent exploration)   (intent → SPEC-*.md)       (codebase audit)     (decompose to PRD)
 ```
 
-> **Note:** These skills are tuned for nax-style projects — they reference conventions such as `.claude/rules/`, ADR-009, and `nax plan`. They load `.claude/rules/` dynamically and degrade gracefully on other projects, but some guidance and examples assume the nax workflow.
+> **Note:** These skills are tuned for nax-style projects — they reference conventions such as `.nax/rules/`, `.claude/rules/`, ADR-009, and `nax plan`. They load the project's rule store(s) dynamically — `.nax/rules/` (nax-native canonical store, higher priority) and `.claude/rules/` — and degrade gracefully on other projects, but some guidance and examples assume the nax workflow.
 
 ## Installation
 

@@ -72,7 +72,7 @@ Every AC must be **behavioral and independently testable**.
 |:-----|:----|:----|:------|:----------|
 | Simple | 3-5 | ≤50 | 1-2 | Single concern, purely additive |
 | Medium | 5-8 | 50-200 | 2-5 | Standard patterns, clear requirements |
-| Complex | 6-10 | 200-500 | 5+ | New abstractions, multiple modules |
+| Complex | 6-15 | 200-500 | 5+ | New abstractions, multiple modules |
 
 ### Hard splitting rules (no exceptions)
 
@@ -80,7 +80,7 @@ Every AC must be **behavioral and independently testable**.
 framing is banned (see Anti-Patterns); it licenses `nax plan` to re-decompose the
 spec freely and is the documented cause of the US-005 drift.
 
-- More than 8 ACs in one story
+- More than 15 ACs in one story
 - Story `Context Files` list has more than 5 entries
 - Story contains both additive intent ("add X", "introduce Y") and destructive
   intent ("delete X", "remove Y", "rename X", "consolidate X into Y") — split the
@@ -98,7 +98,7 @@ where additive slices land green and cleanup is silently dropped.
 - Two stories share the same module and have <4 ACs each
 - A story only makes sense as part of another (e.g., "parse schema" is not useful without "validate against schema")
 
-**Target 3-5 stories per spec.** More than 5 usually means stories are too granular — each story should deliver a user-visible capability, not a single function.
+**Target 3-7 stories per spec.** More than 7 usually means stories are too granular — each story should deliver a user-visible capability, not a single function.
 
 ## Context Hints (Required)
 
@@ -354,7 +354,7 @@ Without this, the agent either ignores errors entirely or adds overly defensive 
 | No integration context | Agent invents types that don't fit existing code | List exact types/interfaces to extend in Design |
 | Missing implementation approach | Agent guesses wrong method (AST vs LLM vs regex) | State the approach explicitly in Design |
 | No failure modes | Agent ignores errors or over-blocks | Specify fail-open/closed, retry, error output |
-| Too many stories | Overhead per story; tiny stories are fragile | Target 3-5 stories; merge if <4 ACs each |
+| Too many stories | Overhead per story; tiny stories are fragile | Target 3-7 stories; merge if <4 ACs each |
 | Integration-only story | Duplicates ACs from earlier stories | Integration behavior belongs in the story that implements it |
 | Custom file format | Agent writes a fragile parser | Use JSON/YAML unless there's a strong reason not to |
 | "Single story with sub-deliverables" | `nax plan` re-decomposes freely and paraphrases load-bearing assertions (US-005 drift) | Pre-decompose into US-Xa/b/c with explicit dependencies — the planner becomes a verification step, not a decomposition step |

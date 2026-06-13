@@ -7,10 +7,18 @@
 ## Step 1 — Load project rules
 
 ```bash
-ls .claude/rules/ 2>/dev/null
+ls .nax/rules/ 2>/dev/null      # nax-native canonical store (higher priority)
+ls .claude/rules/ 2>/dev/null   # Claude-specific layer
 ```
 
-If `.claude/rules/` exists, read every `*.md` file. Common files:
+Read every `*.md` file under each directory that exists.
+
+**Precedence — nax rules win.** `.nax/rules/` is the canonical, agent-neutral SSOT: per-agent shims (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`) are generated one-way *from* it (`nax rules export`); `.claude/rules/` is a Claude-specific layer (a migration source for `.nax/rules/`, not a generated output). When both stores exist, apply this order (higher wins on conflict):
+
+1. `.nax/rules/*.md` — **highest priority** (nax-native canonical store; path-scoped via `paths` / `appliesTo` / optional `priority` frontmatter)
+2. `.claude/rules/*.md` — Claude-specific supplement; a directive here is overridden by a conflicting `.nax/rules/` one.
+
+Common `.claude/rules/` files (mirrored or superseded by `.nax/rules/` in nax projects):
 - `forbidden-patterns.md`
 - `project-conventions.md`
 - `retry-strategy.md`
@@ -21,7 +29,7 @@ If `.claude/rules/` exists, read every `*.md` file. Common files:
 - `testing-rules.md`
 - `testing-commands.md`
 
-If no `.claude/rules/`, fall back to a minimal default set:
+If neither store exists, fall back to a minimal default set:
 - No `JSON.parse` on LLM output (use a structured-parse SSOT)
 - No hardcoded secrets
 - No `console.log` in source code
@@ -127,7 +135,7 @@ If the spec's op kind diverges from how every other LLM op in the codebase is de
 <spec quote with the forbidden pattern>
 ```
 
-**Rule violated:** [`.claude/rules/<file>.md`](.claude/rules/<file>.md) section "<heading>"
+**Rule violated:** [`<.nax|.claude>/rules/<file>.md`](.nax/rules/<file>.md) section "<heading>"
 > <rule quote>
 
 **Recommended fix:** Replace with `<alternative from rule>`.

@@ -35,14 +35,21 @@ Each phase has a stop-the-line gate — if it produces blockers, the next phase 
   - Path to a markdown file (notes, brainstorm export, draft stub)
   - Pasted summary in the invocation
 - **Required:** target spec path — where to write the output (e.g. `docs/specs/SPEC-feature.md`)
-- **Optional:** path to host project's `.claude/rules/` if not auto-discoverable
+- **Optional:** path to host project's rule store(s) if not auto-discoverable — nax-native `.nax/rules/` and/or Claude `.claude/rules/`
 
 ## Pre-flight
 
 Before Phase 1:
 
 1. **Verify brainstorm input is present.** If user invokes cold with no brainstorm context, no file, no inline summary: redirect to `brainstorming` and halt.
-2. **Discover host conventions.** Run `ls .claude/rules/` to load forbidden-pattern and required-pattern lists. These feed Phase 5 (AC drafting) and Phase 3 (codebase grounding). Missing `.claude/rules/` is non-fatal — note in the report.
+2. **Discover host conventions.** Load the project's rule store(s) to build forbidden-pattern and required-pattern lists. These feed Phase 5 (AC drafting) and Phase 3 (codebase grounding). Run both `ls .nax/rules/` and `ls .claude/rules/`, then read every `*.md` under each that exists.
+
+   **Precedence — nax rules win.** When a project has both stores, `.nax/rules/` is the canonical, agent-neutral SSOT: per-agent shims (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`) are generated one-way *from* it via `nax rules export`, and manual edits to those shims are not read back. `.claude/rules/` is a Claude-specific layer (and a migration *source* for `.nax/rules/`, not a generated output). Apply this order, higher wins on conflict:
+
+   1. `.nax/rules/*.md` — **highest priority** (nax-native canonical store)
+   2. `.claude/rules/*.md` — Claude-specific layer; use as a supplement, but a `.nax/rules/` directive overrides a conflicting `.claude/rules/` one.
+
+   nax rule files are path-scoped via frontmatter (`paths`, `appliesTo`, optional `priority`). For spec-level convention extraction, read all of them; when an AC or design block targets a specific package/path, prefer the rules whose `paths`/`appliesTo` match. Missing both stores is non-fatal — note in the report that project rules were not found and fall back to the guide's defaults.
 
 ## Workflow
 
@@ -128,14 +135,14 @@ Estimate AC count and files touched from the intent + design notes. Apply the gu
 > guide § Context Hints.
 
 **Must split** (lower bound enforcement):
-- >8 ACs in one story
+- >15 ACs in one story
 - Context Files list >5 (the read list; `Creates` is counted separately)
 - Story mixes additive ACs ("add X") and destructive ACs ("delete Y", "rename Z", "consolidate W") — split with destruction in a terminal-cleanup story
 - Story has both "add new feature" and "refactor existing code"
 
 **Must merge** (upper bound enforcement):
-- More than 5 stories in the spec — over-decomposition is the symmetric failure of over-bundling. Merge stories that share a module and have <4 ACs each, or where one is meaningless without the other.
-- Target: **3-5 stories per spec**. Single-story specs are acceptable for tiny features.
+- More than 7 stories in the spec — over-decomposition is the symmetric failure of over-bundling. Merge stories that share a module and have <4 ACs each, or where one is meaningless without the other.
+- Target: **3-7 stories per spec**. Single-story specs are acceptable for tiny features.
 
 Detect **removal keywords** in the intent (`delete|remove|consolidate|retire|rename|migrate`). If any present:
 
@@ -152,7 +159,7 @@ Propose the story list with dependencies to the user. Confirm before proceeding.
 
 **Blocker:** sizing breach not resolved (over or under); removal keywords present with no terminal-cleanup story planned; new externally-visible symbol without a planned seam AC for its consumer story.
 
-**Output (written to file):** Stories section with 3-5 stories, dependency chain, `Context Files` (reads) and `Creates` (new files) per story, terminal-cleanup story if applicable, and a `### Seams` block listing cross-story invariants.
+**Output (written to file):** Stories section with 3-7 stories, dependency chain, `Context Files` (reads) and `Creates` (new files) per story, terminal-cleanup story if applicable, and a `### Seams` block listing cross-story invariants.
 
 ### Phase 5 — AC drafting
 
@@ -295,7 +302,7 @@ The skill writes a `SPEC-*.md` matching the guide's structure:
 ### Failure Handling
 
 ## Stories
-<from Phase 4 — 3-5 stories with dependencies>
+<from Phase 4 — 3-7 stories with dependencies>
 ### Seams
 <from Phase 4 — cross-story invariants>
 
@@ -330,9 +337,9 @@ Run `spec-review --spec <path>` for a full codebase audit before `nax plan`.
 
 - **Not brainstorming.** Assumes intent is stable. If intent is fluid, redirect to `brainstorming`.
 - **Not spec-review.** Performs only a light symbol audit in Phase 3 and invokes full spec-review in Phase 6. Doesn't replace spec-review's nine phases.
-- **Not `nax plan`.** Decomposes into stories at the spec level (3-5 user-visible capabilities), not into PRD slices (per-AC executable plans).
+- **Not `nax plan`.** Decomposes into stories at the spec level (3-7 user-visible capabilities), not into PRD slices (per-AC executable plans).
 - **Not a design reviewer.** Doesn't judge whether the design is good — only whether it's structured per the guide. Use `architect` or `code-reviewer` for design quality.
-- **Not project-specific.** Rules come from [reference/spec-writing-guide.md](reference/spec-writing-guide.md) and `.claude/rules/` in the host project. Same skill works on any project.
+- **Not project-specific.** Rules come from [reference/spec-writing-guide.md](reference/spec-writing-guide.md) and the host project's rule store(s) — `.nax/rules/` (nax-native canonical store, higher priority) and/or `.claude/rules/`. Same skill works on any project.
 
 ## Cost & cadence
 

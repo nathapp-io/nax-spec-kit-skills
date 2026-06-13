@@ -31,10 +31,10 @@ For each story over the spec-writing.md soft limit (10) → **MINOR**, with a re
 grep -c "^### US-" <spec-path>
 ```
 
-Target per spec-writing.md: **3–5 stories**. Outside that range:
+Target per spec-writing.md: **3–7 stories**. Outside that range:
 - **<3 stories** → minor (rare, usually fine)
-- **>5 stories** → minor with note: "consider whether stories are too granular; each story should deliver a user-visible capability, not a single function"
-- **>8 stories** → major
+- **>7 stories** → minor with note: "consider whether stories are too granular; each story should deliver a user-visible capability, not a single function"
+- **>10 stories** → major
 
 ## Step 4 — Duplicate detection
 

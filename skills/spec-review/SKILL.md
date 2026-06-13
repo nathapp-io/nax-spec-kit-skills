@@ -1,6 +1,6 @@
 ---
 name: spec-review
-description: Use this skill to systematically review an implementation spec against the actual codebase before handing it off to implementers. Catches API hallucination (named symbols that don't exist), PRD↔code contradictions (proposed shapes incompatible with real schemas/types), convention violations (forbidden patterns, wrong file locations, unknown session roles), behavioral semantic drift (spec prose vs actual code behavior), sizing breaches (AC caps), stale references from earlier revisions, and (when --prd is passed) spec-to-PRD fidelity loss after `nax plan`. Invoke when the user asks to "review this spec", "check this spec against the codebase", "audit this spec for hallucination", "audit the PRD against the spec", or `/spec-review <path>`. Project-agnostic — loads `.claude/rules/` dynamically.
+description: Use this skill to systematically review an implementation spec against the actual codebase before handing it off to implementers. Catches API hallucination (named symbols that don't exist), PRD↔code contradictions (proposed shapes incompatible with real schemas/types), convention violations (forbidden patterns, wrong file locations, unknown session roles), behavioral semantic drift (spec prose vs actual code behavior), sizing breaches (AC caps), stale references from earlier revisions, and (when --prd is passed) spec-to-PRD fidelity loss after `nax plan`. Invoke when the user asks to "review this spec", "check this spec against the codebase", "audit this spec for hallucination", "audit the PRD against the spec", or `/spec-review <path>`. Project-agnostic — loads `.nax/rules/` (nax-native, higher priority) and `.claude/rules/` dynamically.
 ---
 
 # Spec Review Skill
@@ -53,7 +53,7 @@ For every claim of the form "X has field Y" or "X(args) returns Z", open the act
 
 See [checklists/phase-3-convention-audit.md](checklists/phase-3-convention-audit.md).
 
-Load every rule file under `.claude/rules/` (project) and apply forbidden-pattern / required-pattern checks against the spec's code blocks. Project-agnostic: rules come from the project, not hardcoded.
+Load every rule file under the project's rule store(s) — `.nax/rules/` (nax-native canonical store, **higher priority**) and `.claude/rules/` — and apply forbidden-pattern / required-pattern checks against the spec's code blocks. On conflict, a `.nax/rules/` directive overrides a `.claude/rules/` one. Project-agnostic: rules come from the project, not hardcoded.
 
 **Blocker:** any forbidden pattern in the spec, any required pattern missing where required.
 
@@ -147,7 +147,7 @@ Checks:
    ACs are flagged as splittable per the spec-writing terminal-cleanup-story
    rule. Pure terminal-cleanup stories (deletion-only) pass.
 5. **Sizing+.** Re-run the spec-writing hard splitting rules — Context Files >5
-   or AC count >8 in a single story is a blocker, regardless of `maxAcCount`.
+   or AC count >15 in a single story is a blocker, regardless of `maxAcCount`.
    The "single story with sub-deliverables" framing is rejected.
 
 **Blocker:** missing behavioral seam AC for a new exported symbol; removal-keyword
@@ -279,12 +279,19 @@ Consequences for the audit:
 
 ### Project rule discovery (mandatory before Phase 3)
 
-Run `ls .claude/rules/` from the project root. Load every `.md` file under that directory. Build an in-memory list of:
+Run both `ls .nax/rules/` and `ls .claude/rules/` from the project root. Load every `.md` file under each directory that exists. Build an in-memory list of:
 - Forbidden patterns (search for tables under headings containing "Forbidden", "Banned", "Anti-Pattern")
 - Required patterns (search for tables under headings containing "Required", "Mandatory", "Convention")
 - File-location rules (extract paths from "lives at" / "located in" / "owned by" phrases)
 
-If `.claude/rules/` does not exist, fall back to a minimal default rule set: no `JSON.parse` on LLM output, no hardcoded secrets, no `console.log` in source. Note in the report that project rules were not found.
+**Precedence — nax rules win.** `.nax/rules/` is the canonical, agent-neutral SSOT: per-agent shims (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`) are generated one-way *from* it (`nax rules export`), and `.claude/rules/` is a Claude-specific layer (a migration source for `.nax/rules/`, not a generated output). When both stores exist, apply this order (higher wins on conflict):
+
+1. `.nax/rules/*.md` — **highest priority** (nax-native canonical store)
+2. `.claude/rules/*.md` — Claude-specific supplement; overridden by a conflicting `.nax/rules/` directive.
+
+nax rule files are path-scoped via frontmatter (`paths`, `appliesTo`, optional `priority`); when a spec code block targets a specific package/path, prefer the rules whose `paths`/`appliesTo` match it.
+
+If neither store exists, fall back to a minimal default rule set: no `JSON.parse` on LLM output, no hardcoded secrets, no `console.log` in source. Note in the report that project rules were not found.
 
 ### Symbol extraction (Phase 1)
 
@@ -375,7 +382,7 @@ See [examples/asymmetric-pipeline-walkthrough.md](examples/asymmetric-pipeline-w
 
 - **Not a design reviewer.** Does not judge architecture quality. Use `architect` or `code-reviewer` for that.
 - **Not a substitute for spec-writing.md.** Validates a written spec; does not author one.
-- **Not project-specific.** Rules come from `.claude/rules/` dynamically. Same skill works on TypeScript, Go, Python, Java projects with different rule sets.
+- **Not project-specific.** Rules come dynamically from the project's rule store(s) — `.nax/rules/` (nax-native canonical store, higher priority) and/or `.claude/rules/`. Same skill works on TypeScript, Go, Python, Java projects with different rule sets.
 
 ## Cost & cadence
 
