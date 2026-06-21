@@ -73,12 +73,28 @@ Read the brainstorm source. Extract structured fields:
 - **Constraints** — performance, compatibility, security, deadlines. *(capture if present)*
 - **Naming choices** — type names, function names, file paths. *(capture if present — do not prompt the user to commit to names here; they emerge during Design)*
 - **Extension vs greenfield** — does this modify existing code, or create new modules? Note: many features are **partial extension** (some new code + some existing-code modification) — capture both touchpoints. *(required)*
+- **New package vs in-place (monorepo only)** — if the repo is a workspace monorepo, classify greenfield work as either **new modules inside an existing package** or a **completely new package** (a new workspace member with its own manifest/build). This drives the scaffolding gate below. *(required when the repo is a monorepo)*
 
 Surface what was extracted to the user with a one-line summary per field. If any **required** field is missing or contradictory, ask targeted questions before proceeding. Optional fields stay blank.
 
-**Blocker:** required field missing; "extension vs greenfield" classification absent.
+#### New-package scaffolding gate (monorepo only)
 
-**Output (written to file):** Summary section and Motivation section drafted from the required fields.
+Triggered when **both** hold:
+
+1. The repo is a **workspace monorepo** — detect via any of: `workspaces` in root `package.json`, `pnpm-workspace.yaml`, a Cargo `[workspace]`, `go.work`, a Nx/Turbo/Lerna config, or an existing `.nax/mono/` directory.
+2. This feature introduces a **completely new package** — a new workspace member with its own manifest and build, not just new files inside an existing package.
+
+When triggered, ask the user: *scaffold the new package now, or leave package creation to the implementer?* Per the Dialogue-cadence rule, **batch this into Phase 1's single question prompt** alongside any missing-field questions — don't issue it as a separate round-trip. Do not scaffold silently — package creation is a side-effecting structural change, so it waits for the user's answer; the scaffold *action* below runs only after Phase 1's questions are resolved.
+
+- **User says scaffold:** invoke the **`nax-setup` skill** to scaffold and wire the new package (its skeleton + per-package `.nax/mono/<pkg>/config.json` wired to the package's real build/test/lint/typecheck commands). After it completes, record the new package path and its resolved quality commands — Phase 3 grounds against the scaffolded skeleton, and Phase 5 verification notes cite the wired build/static gate.
+  - **If the `nax-setup` skill is not available** (not installed in this environment): tell the user it's missing and offer a **best-effort scaffold** instead — only proceed on explicit user approval. The fallback mirrors a sibling package: create the new workspace member (manifest, `src/`, test dir, register it in the workspace list) following the conventions of an existing package in the monorepo, then add a per-package `.nax/mono/<pkg>/config.json` wired to the package's real build/test/lint/typecheck commands. Note in the spec that scaffolding was best-effort (no `nax-setup` skill) so the user can verify it. If the user declines the fallback, treat as "User declines" below.
+- **User declines:** note the package as not-yet-existing. Phase 3 has no precedent to read for it (treat as pure-greenfield), and Phase 5 must phrase the package's build/static-gate notes as "once the package's `<build command>` is wired."
+
+If only one of the two conditions holds (not a monorepo, or new modules inside an existing package), skip this gate entirely.
+
+**Blocker:** required field missing; "extension vs greenfield" classification absent; monorepo new-package scaffolding gate triggered but unresolved (user not asked, or answered "scaffold" but the scaffold — via `nax-setup` or best-effort fallback — has not yet been performed).
+
+**Output (written to file):** Summary section and Motivation section drafted from the required fields. If scaffolding ran, the Design section records the new package path and its wired quality commands (in the Integration block if the feature also extends existing code, otherwise as a standalone Design note).
 
 ### Phase 2 — Coverage map
 
@@ -277,6 +293,8 @@ If the user re-invokes the skill on a path that already exists:
 ### Greenfield specs
 
 Phase 3 is skipped. Phase 4 may produce simpler decomposition (often 1-2 stories for greenfield CLI tools). Phase 5's two-anchor rule still applies — even for new code, isolated unit tests don't prove the production caller works.
+
+**Monorepo new-package case.** When the greenfield work is a *completely new package* in a workspace monorepo, Phase 1's new-package scaffolding gate fires first: ask the user whether to scaffold, and if yes invoke the `nax-setup` skill to create and wire the package before drafting continues. If scaffolding ran, Phase 3 grounds against the new skeleton (no longer pure-greenfield for that package) and Phase 5 cites the wired per-package build/static gate; if declined, treat the package as pure-greenfield and phrase gate notes as pending package wiring.
 
 ### Removal-heavy specs
 
