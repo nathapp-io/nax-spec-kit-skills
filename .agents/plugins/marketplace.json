@@ -12,7 +12,7 @@
     {
       "name": "nax-spec-kit",
       "description": "Convert a brainstorm into a guide-conformant SPEC-*.md (spec-writing) and audit that spec against the actual codebase before implementation (spec-review).",
-      "version": "0.1.8",
+      "version": "0.1.9",
       "source": {
         "source": "local",
         "path": "./plugins/nax-spec-kit"

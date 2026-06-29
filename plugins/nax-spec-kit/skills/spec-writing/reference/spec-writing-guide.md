@@ -86,6 +86,9 @@ spec freely and is the documented cause of the US-005 drift.
   intent ("delete X", "remove Y", "rename X", "consolidate X into Y") — split the
   destruction into a terminal-cleanup story that depends on the additive one
 - Story has both "add new feature" and "refactor existing code"
+- **(monorepo only)** Story touches more than one workspace package — split into
+  one story per package so each story has a single `Workdir` (see Workdir below).
+  A repo-root-only story is not a split trigger; it takes `Workdir: .`.
 
 **Terminal-cleanup story rule.** When a spec includes any removal/rename/consolidation
 ACs, the last story must be **deletion-only** — no new code, only file deletions,
@@ -153,6 +156,40 @@ A file may appear in **`Context Files`** (a sibling to mirror) and **`Creates`**
 (the new file itself) across the same story — but a single path belongs to exactly
 one list. For a greenfield project with no existing code, a story may have only a
 `Creates` list and no `Context Files`.
+
+## Workdir (monorepo, required)
+
+In a **workspace monorepo** every story **must** declare a `Workdir` — the single
+package directory the story operates in, relative to the repo root. `nax plan`
+maps it to the `workdir` field in `prd.json`, scoping the implementation session
+and quality gates (build/test/lint/typecheck) to that package's
+`.nax/mono/<pkg>/config.json`. Without it, the gates run at the repo root and miss
+the per-package commands.
+
+Detect a monorepo via any of: `workspaces` in root `package.json`,
+`pnpm-workspace.yaml`, a Cargo `[workspace]`, `go.work`, an Nx/Turbo/Lerna config,
+or an existing `.nax/mono/` directory.
+
+Rules:
+- `Workdir` is **single-valued** — exactly one package path that matches a
+  workspace member (e.g. `apps/api`, `packages/core`). A story spanning more than
+  one package must be split (see Hard splitting rules).
+- A story operating only on repo-root files (root config, workspace manifest,
+  top-level tooling) takes `Workdir: .`.
+- A newly scaffolded package's stories use that new package's path.
+- **Single-package (non-monorepo) repos omit `Workdir` entirely** — do not write
+  `Workdir: .` for them.
+
+```markdown
+### Stories
+1. **US-001: API validation endpoint** — `Workdir: apps/api` — no dependencies
+2. **US-002: Web form wiring** — `Workdir: apps/web` — depends on US-001
+3. **US-003: Shared validator** — `Workdir: packages/core` — no dependencies
+```
+
+See [../examples/SPEC-example-monorepo.md](../examples/SPEC-example-monorepo.md)
+for a complete worked monorepo spec with per-package splits and a `Workdir: .`
+root-only story.
 
 ## Removal & Migration ACs
 
@@ -365,6 +402,8 @@ Without this, the agent either ignores errors entirely or adds overly defensive 
 | `[unit]`-only AC for new exported symbol | Isolated test passes; production caller never invokes the symbol | Pair with an `[integration]` seam AC asserting the production wiring |
 | Aspirational meta-AC ("only N edit points") | No runtime test an implementer can write | Move to build/static-gate verification note; write a behavioural AC for the observable behaviour instead |
 | Novel code shape with no codebase precedent | Agent defaults to nearest familiar template (pattern gravity) | Either cite an existing file with the same shape or include a complete worked skeleton in Design |
+| (monorepo) Story with no `Workdir` | Quality gates run at repo root, miss the package's per-package commands | Assign each story a single-valued `Workdir` = its package path (`.` for root-only) |
+| (monorepo) Story spanning multiple packages | One `workdir` can't scope two packages' gates | Split into one story per package, each with its own `Workdir` |
 
 ## Real Example
 

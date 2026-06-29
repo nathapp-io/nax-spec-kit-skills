@@ -155,6 +155,7 @@ Estimate AC count and files touched from the intent + design notes. Apply the gu
 - Context Files list >5 (the read list; `Creates` is counted separately)
 - Story mixes additive ACs ("add X") and destructive ACs ("delete Y", "rename Z", "consolidate W") — split with destruction in a terminal-cleanup story
 - Story has both "add new feature" and "refactor existing code"
+- **(monorepo only)** Story touches more than one workspace package — split into one story per package so each story has a single `Workdir`. A repo-root-only story (root config, workspace manifest) is not a split trigger; it takes `Workdir: .` (see Workdir assignment below). This split applies before the Must-merge / hard-ceiling checks: a per-package split is structural and is never merged back into a multi-package story.
 
 **Must merge** (upper bound enforcement):
 - More than 7 stories in the spec — over-decomposition is the symmetric failure of over-bundling.
@@ -173,11 +174,23 @@ For each seam:
 
 - Plan a **Seam invariant** declared in B's ACs: a behavioral `[unit]`/`[integration]` AC where B's test stubs/spies the new symbol, triggers B's production path, and asserts the symbol was invoked with the expected arguments (see Phase 5 "Nax-friendly AC format"). This proves the call site exists *and* is wired — never a file-content/grep assertion that the text appears.
 
-Propose the story list with dependencies to the user. Confirm before proceeding.
+#### Workdir assignment (monorepo only)
 
-**Blocker:** sizing breach not resolved (over or under); removal keywords present with no terminal-cleanup story planned; new externally-visible symbol without a planned seam AC for its consumer story.
+If the repo is a **workspace monorepo** (detected in Phase 1 — `workspaces` in root `package.json`, `pnpm-workspace.yaml`, Cargo `[workspace]`, `go.work`, Nx/Turbo/Lerna config, or an existing `.nax/mono/` directory), **every story must declare a `Workdir`** — the package directory the story operates in, relative to the repo root.
 
-**Output (written to file):** Stories section with 3-7 stories, dependency chain, `Context Files` (reads) and `Creates` (new files) per story, terminal-cleanup story if applicable, and a `### Seams` block listing cross-story invariants.
+- The value is a single package path that matches a workspace member (e.g. `apps/api`, `apps/web`, `packages/core`) — ideally one with a wired per-package `.nax/mono/<pkg>/config.json`, so nax runs that package's build/test/lint/typecheck gates in the right directory.
+- A story that operates only on repo-root files (root config, the workspace manifest, top-level tooling) takes `Workdir: .`.
+- A story must never carry more than one package — the per-package Must-split rule above guarantees a single-valued `Workdir`. If you find yourself wanting two packages in one `Workdir`, split the story.
+- For a **new package** scaffolded in Phase 1, the `Workdir` is that new package's path.
+- Non-monorepo repos do not use `Workdir` — omit it entirely (do not write `Workdir: .` for a single-package repo).
+
+`nax plan` maps each story's `Workdir` to the `workdir` field in `prd.json`, scoping the implementation session and quality gates to that package.
+
+Propose the story list with dependencies (and per-story `Workdir` when monorepo) to the user. Confirm before proceeding.
+
+**Blocker:** sizing breach not resolved (over or under); removal keywords present with no terminal-cleanup story planned; new externally-visible symbol without a planned seam AC for its consumer story; **monorepo detected and any story is missing a `Workdir`, carries more than one package, or names a package path that is not a workspace member**.
+
+**Output (written to file):** Stories section with 3-7 stories, dependency chain, `Context Files` (reads) and `Creates` (new files) per story, a single-valued `Workdir` per story when the repo is a monorepo, terminal-cleanup story if applicable, and a `### Seams` block listing cross-story invariants.
 
 ### Phase 5 — AC drafting
 
@@ -322,7 +335,7 @@ The skill writes a `SPEC-*.md` matching the guide's structure:
 ### Failure Handling
 
 ## Stories
-<from Phase 4 — 3-7 stories with dependencies>
+<from Phase 4 — 3-7 stories with dependencies; each story carries a single-valued `Workdir: <package path>` when the repo is a monorepo>
 ### Seams
 <from Phase 4 — cross-story invariants>
 
@@ -343,6 +356,7 @@ After writing, produce a single-message summary to the user:
 - <N> stories, <M> ACs total (all runtime `[unit]`/`[integration]`/`[cli]`)
 - Terminal-cleanup story: <yes/no> (removals verified via build/static gate: <command>)
 - Seam ACs declared: <count>
+- Monorepo: <yes/no> — when yes, each story scoped to a `Workdir` (<list of distinct package paths>)
 
 ## User decisions captured
 1. <decision from Phase 1>
