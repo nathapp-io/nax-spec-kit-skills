@@ -85,6 +85,19 @@ Beyond comparing spec to code, also compare spec ACs to spec design within the s
 
 When prose and ACs disagree within the spec, the spec itself is internally inconsistent — flag as **BLOCKER** because the implementer doesn't know which to trust.
 
+### Under-specified input class (completeness)
+
+Beyond prose-vs-AC disagreement, check for **input classes no AC defines**. For any function covered by ≥2 ACs that partition one input dimension (e.g. a return value `true`/`false`, present/absent), ask whether **another meaningful input dimension** is left behaviorally undefined:
+
+- sync factory vs **async** (`Promise`-returning) factory
+- value present vs **absent/null/undefined**
+- valid input vs **malformed** input
+- single item vs **empty** collection vs **many**
+
+If a class is exercised by no AC's test **and** not listed in the spec's **Out-of-scope**, flag **MAJOR**. Undefined-but-plausible input classes are where the semantic and adversarial reviewers over-interpret in *contradictory* directions at implementation time: the fix for one re-triggers the other, rectification exits `regressed-different-source`, and the story escalates tiers without converging (real case: `notif-dlq-hardening` — AC3/AC4 pinned sync-factory behavior but left async factories undefined; semantic demanded async-true→wire-DLQ while adversarial demanded async-false→throw, an unsatisfiable pair given synchronous module construction).
+
+**Recommended fix:** add an AC pinning the class's behavior, **or** move it to Out-of-scope. Never leave it silent for the reviewers to arbitrate.
+
 ## Step 6 — Reality of "shipped" claims
 
 When the spec says "X is already shipped" or "DONE", open the referenced file and verify it actually does what the spec claims. Just because a file exists doesn't mean its behavior matches the claim.
@@ -124,3 +137,4 @@ Run this check by:
 - "Single-turn LLM op via `complete`" but every existing single-turn LLM op uses `run`
 - "Grounder validates schema" but the retry inspects only JSON validity, not schema
 - "Configurable threshold" but threshold actually lives as a module constant
+- ACs pin sync-factory behavior (true→wire, false→throw) but never define async factories — undefined input class the reviewers later demand contradictory behavior for

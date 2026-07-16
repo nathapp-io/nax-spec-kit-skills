@@ -1,7 +1,7 @@
 {
   "name": "nax-spec-kit",
   "description": "Spec authoring + audit workflow for Claude Code: spec-writing (brainstorm → SPEC-*.md) and spec-review (ground a spec against the real codebase before implementation).",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "author": {
     "name": "William Khoo",
     "email": "william_khoo@outlook.com"
