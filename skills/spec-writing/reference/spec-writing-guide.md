@@ -51,6 +51,7 @@ Every AC must be **behavioral and independently testable**.
 6. **Never write ACs about tests.** "Tests pass" or "test file exists" are meta-criteria, not behavior.
 7. **Stay in scope.** Only write ACs for behavior described in the spec. Don't invent features not in the requirements.
 8. **Be consistent.** If the spec says "url", don't use "uri" in interfaces. Match terminology exactly.
+9. **Pin every meaningful input class.** When an AC covers a function whose inputs split into behaviorally distinct classes — sync vs async, present vs absent, valid vs malformed, empty vs non-empty, resolves-true vs resolves-false — write an AC for **each class the feature handles**, and list any class it does **not** handle under **Out-of-scope**. An input class left undefined by every AC (and unexercised by any AC's test) is undefined behavior: the reviewers over-interpret it in *contradictory* directions, the fix for one reviewer re-triggers the other, and the story never converges (real case: `notif-dlq-hardening` pinned sync-factory behavior in AC3/AC4 but left async factories undefined → an unsatisfiable semantic-vs-adversarial contradiction that burned several escalation tiers). Either pin it or defer it — never leave it silent. This is about the *plausible, behaviorally-distinct* classes a caller will actually hit — not every combinatorial permutation; if pinning them all would breach the story's AC cap, that is a signal to split the story (see Story Sizing), not to pack in more ACs.
 
 ### Examples
 
@@ -59,12 +60,16 @@ Every AC must be **behavioral and independently testable**.
 - "Interface defined with all required fields" → existence, not behavior
 - "Function handles edge cases correctly" → vague
 - "Tests added and passing" → meta
+- `registerDlq(factory)` wires the service when `factory` returns `enableProcessor: true` → silent about async factories; leaves the async input class undefined (Rule 9)
 
 ✅ **Good:**
 - `buildPostRunContext()` returns `PostRunContext` where `logger.info('msg')` forwards to the run logger with `stage='post-run'`
 - `getPostRunActions()` returns empty array when no plugins provide `'post-run-action'`
 - `validatePostRunAction()` returns `false` and logs warning when `postRunAction.execute` is not a function
 - When `action.execute()` throws, `cleanupRun()` logs at warn level and continues to the next action
+- `registerDlq(syncFactory)` wires `DLQ_SERVICE` when the **synchronous** factory returns `enableProcessor: true` *(input class pinned — Rule 9)*
+- `registerDlq(syncFactory)` throws unknown-provider when the **synchronous** factory returns `enableProcessor: false` *(the sibling class, pinned)*
+- Async (`Promise`-returning) factories are **Out-of-scope** for conditional DLQ wiring — declared in the spec's Out-of-scope, not left to reviewer interpretation
 
 ## Story Sizing
 

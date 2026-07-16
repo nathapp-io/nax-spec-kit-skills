@@ -202,6 +202,7 @@ For each story, draft ACs in two tracks:
 - Concrete identifiers (function names, return types, error messages).
 - Specifies HOW things connect.
 - No quality gates, no meta-ACs about tests passing, no vague verbs.
+- **Pin every meaningful input class** (guide Rule 9). If a function's inputs split into behaviorally distinct classes (sync vs async, present vs absent, valid vs malformed), draft an AC for each class handled and defer the rest to **Out-of-scope**. An input class left undefined by every AC becomes contested territory where semantic and adversarial reviewers demand contradictory behavior and the story cannot converge.
 
 **Track B — Verification anchoring.** This is not a second list of ACs — it is the rule that every Track A AC must itself *be* the executable anchor (a real runtime test the implementer writes fail-first, then makes pass), plus the extra anchors (seam ACs, gate notes) below. Translate each mechanical claim into the behaviour that proves it:
 
