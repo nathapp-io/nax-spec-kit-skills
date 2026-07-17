@@ -203,6 +203,19 @@ For each story, draft ACs in two tracks:
 - Specifies HOW things connect.
 - No quality gates, no meta-ACs about tests passing, no vague verbs.
 - **Pin every meaningful input class** (guide Rule 9). If a function's inputs split into behaviorally distinct classes (sync vs async, present vs absent, valid vs malformed), draft an AC for each class handled and defer the rest to **Out-of-scope**. An input class left undefined by every AC becomes contested territory where semantic and adversarial reviewers demand contradictory behavior and the story cannot converge.
+- **Pin every applicable risk property, or declare it out of scope** (guide Rule 10 — the adversarial-scope rule). If a story touches a **risk-sensitive domain**, enumerate that domain's canonical risk properties and, for each one, either (a) encode it as an executable AC — they are all testable — or (b) list it in the story's **Out of scope** declaration with a one-line reason. A risk property left silent is contested territory for the downstream adversarial reviewer: it can substantiate a factually-true but out-of-scope finding against a verbatim AC quote and block the story indefinitely (real case: an IAM-persistence story with only happy-path passthrough ACs looped ~18 adversarial rounds on atomicity/replay/tenancy concerns none of its ACs mentioned, and had to be stopped manually).
+
+  | Risk-sensitive domain (trigger keywords) | Canonical risk properties to pin or declare |
+  |:---|:---|
+  | Authentication / sessions (`auth`, `login`, `token`, `session`) | credential validation on every path; expiry honored; failure states distinguishable |
+  | Rate limiting / counters (`rate limit`, `attempt`, `counter`, `window`) | window expiry/reset; atomicity under concurrent increment |
+  | Replay protection (`replay`, `nonce`, `TOTP`, `OTP`, `MFA`) | time-step/window derivation; reuse-within-window rejected |
+  | Multi-tenancy (`tenant`, `org`, `workspace` scoping) | every read/write scoped by tenant; tenant field required, not nullable |
+  | Concurrency / atomicity (`race`, `lock`, `transaction`, `upsert`) | check-then-act paths atomic or explicitly declared best-effort |
+  | Expiry / retention (`TTL`, `expiresAt`, `retention`) | expired rows excluded from reads; cleanup semantics |
+  | Crypto / secrets (`hash`, `encrypt`, `secret`, `key`) | algorithm/strength named; secrets never logged or returned |
+
+  Match is on the story's *subject matter* (title, design touchpoints, symbols), not incidental word use. The out-of-scope route is legitimate and cheap — the point is that the spec, not a downstream reviewer, decides the story's scope boundary.
 
 **Track B — Verification anchoring.** This is not a second list of ACs — it is the rule that every Track A AC must itself *be* the executable anchor (a real runtime test the implementer writes fail-first, then makes pass), plus the extra anchors (seam ACs, gate notes) below. Translate each mechanical claim into the behaviour that proves it:
 
@@ -221,7 +234,7 @@ After drafting:
 4. Verify the two-anchor rule on every new exported symbol (behavioral seam AC present).
 5. Verify removal keywords trace to a build/static-gate verification note, not to an AC.
 
-**Blocker:** untagged AC; AC tagged `[grep]` / `[file]` / `[verbatim]`; AC expressed as a file-content / grep / "file contains" assertion; **any AC containing a shell command** (`grep`, `wc -l`, `find`, `awk`, `sed`, shell pipe `|`) **or a language-specific test API** (`readFileSync`, `expect()`, `assert "X" in ...`, `os.ReadFile`, etc.); unpaired new externally-visible symbol with no behavioral seam AC (as defined in Phase 4); removal keyword encoded as an AC instead of a build/static-gate note; aspirational meta-AC.
+**Blocker:** untagged AC; AC tagged `[grep]` / `[file]` / `[verbatim]`; AC expressed as a file-content / grep / "file contains" assertion; **any AC containing a shell command** (`grep`, `wc -l`, `find`, `awk`, `sed`, shell pipe `|`) **or a language-specific test API** (`readFileSync`, `expect()`, `assert "X" in ...`, `os.ReadFile`, etc.); unpaired new externally-visible symbol with no behavioral seam AC (as defined in Phase 4); removal keyword encoded as an AC instead of a build/static-gate note; aspirational meta-AC; **risk-sensitive story with a canonical risk property neither encoded as an AC nor declared out of scope** (adversarial-scope rule).
 
 #### Nax-friendly AC format (mandatory)
 
@@ -242,7 +255,7 @@ State the **behaviour**, not the implementation and not the source text. "Symbol
 
 **Why:** `prd.json` ACs run as agent-implemented tests, not as a static grep gate. A file-content assertion (1) passes as soon as the string appears anywhere in the file, (2) never verifies the symbol is importable/usable/typed, and (3) gives the implementer no signal about what the symbol must *do*. Negative-grep assertions ("no file contains X") can't be expressed as a runtime test at all. Shell pipelines and language-specific assertion APIs additionally break the polyglot generator. Language-neutral behavioural prose is the only form that survives `nax plan` into an executable, meaningful test. Static greps that you still want as a CI gate belong in `bun run typecheck` / a linter, never in `acceptanceCriteria`.
 
-**Output (written to file):** Acceptance Criteria section, per-story AC blocks with verification anchors. At this point the spec file is structurally complete.
+**Output (written to file):** Acceptance Criteria section, per-story AC blocks with verification anchors. Risk-sensitive stories additionally carry an `**Out of scope:**` list under their AC block naming each deferred risk property with its one-line reason. At this point the spec file is structurally complete.
 
 ### Phase 6 — Self-review handoff
 
@@ -357,6 +370,7 @@ After writing, produce a single-message summary to the user:
 - <N> stories, <M> ACs total (all runtime `[unit]`/`[integration]`/`[cli]`)
 - Terminal-cleanup story: <yes/no> (removals verified via build/static gate: <command>)
 - Seam ACs declared: <count>
+- Risk-sensitive stories: <count> — each risk property pinned as an AC or declared out of scope
 - Monorepo: <yes/no> — when yes, each story scoped to a `Workdir` (<list of distinct package paths>)
 
 ## User decisions captured

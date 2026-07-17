@@ -98,6 +98,16 @@ If a class is exercised by no AC's test **and** not listed in the spec's **Out-o
 
 **Recommended fix:** add an AC pinning the class's behavior, **or** move it to Out-of-scope. Never leave it silent for the reviewers to arbitrate.
 
+### Adversarial-scope gap (risk-sensitive stories)
+
+A story whose subject matter is **risk-sensitive** — authentication/sessions, rate limiting/counters, replay protection (TOTP/OTP/MFA/nonce), multi-tenancy scoping, concurrency/atomicity (check-then-act, upsert, locks), expiry/TTL/retention, crypto/secrets — but whose ACs are **all happy-path passthrough contracts** ("returns X when the delegate resolves", "calls delete when a row exists") with **no property-style AC** (atomicity, window expiry, replay rejection, tenant scoping, expiry filtering) and **no out-of-scope declaration** for those properties, is a predictable adversarial-review deadlock.
+
+Why: the downstream adversarial reviewer runs last, on green code, and can substantiate factually-true findings about the unpinned properties against real code while quoting an adjacent AC verbatim — every such finding survives AC-grounding and blocks, round after round. Real case: a "persist IAM stores with Prisma" story with 7 passthrough ACs looped ~18 adversarial rounds on atomic rate-limit windows, TOTP replay-window derivation, and tenant-column nullability — none of which any AC mentioned; every finding was factually true about the code, quoted an adjacent AC verbatim, and so survived AC-grounding and blocked.
+
+Detection: match risk-domain keywords against the story's title, design touchpoints, and symbol names (not incidental word use). For each matched story, require at least one of: (a) a property-style AC for each canonical risk property of that domain, or (b) an explicit `Out of scope` entry naming the property.
+
+Flag **MAJOR** (it predicts non-convergence, not incorrectness). **Recommended fix:** pin each silent risk property as an executable AC, or declare it out of scope — the spec, not a downstream reviewer, must own the scope boundary.
+
 ## Step 6 — Reality of "shipped" claims
 
 When the spec says "X is already shipped" or "DONE", open the referenced file and verify it actually does what the spec claims. Just because a file exists doesn't mean its behavior matches the claim.
@@ -138,3 +148,4 @@ Run this check by:
 - "Grounder validates schema" but the retry inspects only JSON validity, not schema
 - "Configurable threshold" but threshold actually lives as a module constant
 - ACs pin sync-factory behavior (true→wire, false→throw) but never define async factories — undefined input class the reviewers later demand contradictory behavior for
+- IAM-store story with 7 happy-path passthrough ACs and no atomicity/replay/tenancy AC or out-of-scope declaration — adversarial reviewer blocked ~18 rounds on the silent properties
