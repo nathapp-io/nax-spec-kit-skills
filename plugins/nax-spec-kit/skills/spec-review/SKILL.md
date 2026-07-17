@@ -61,9 +61,10 @@ Load every rule file under the project's rule store(s) — `.nax/rules/` (nax-na
 
 See [checklists/phase-4-behavioral-semantic.md](checklists/phase-4-behavioral-semantic.md).
 
-The only LLM-judgment phase. For each named check/function the spec describes behaviorally, open the actual implementation and confirm prose matches code semantics.
+The only LLM-judgment phase. For each named check/function the spec describes behaviorally, open the actual implementation and confirm prose matches code semantics. Also runs two completeness checks: **under-specified input classes** (an input dimension no AC pins and no Out-of-scope entry defers) and the **adversarial-scope gap** (a risk-sensitive story — auth, rate limiting, replay/MFA, tenancy, concurrency, expiry, crypto — whose ACs are all happy-path passthrough contracts with no property-style AC and no out-of-scope declaration; a predictable adversarial-review deadlock, flagged major).
 
 **Blocker:** spec prose describes different semantics than the code implements (e.g. "rejects uncited PRD claims" when the code measures manifest verification rate).
+**Major:** under-specified input class; adversarial-scope gap on a risk-sensitive story.
 
 ### Phase 5 — Sizing & hygiene
 
@@ -173,6 +174,15 @@ Checks:
    assertion ("file contains X"), into a vaguer behaviour, or that dropped the
    asserted arguments. A grep-style PRD AC is a regression even if the spec was
    behavioural.
+   **Signature reality check:** when a PRD AC (or the spec AC it maps from) names
+   a call with explicit arguments against an **existing** interface/function, diff
+   the arity and parameter shapes against the real signature captured in Phase 2.
+   Planner/acceptance-test generators have hallucinated signatures that contradict
+   both the published interface and the spec prose (real case: a generated
+   acceptance test called a 2-arg `checkAndReserve(key, ttl)` with 5 args and a
+   2-arg `increment(key, windowSeconds)` with 3 — the tests could never pass
+   against a correct implementation). A PRD AC whose asserted call shape
+   contradicts the real signature is a **blocker**.
 3. **Orphan PRD ACs.** PRD ACs with no traceable spec source are flagged as
    scope bleed — typically from `nax plan`'s candidate-PRD merge feature.
    Common signatures: PRD AC introduces new enum values, new status codes, new
