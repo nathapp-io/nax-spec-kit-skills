@@ -136,6 +136,16 @@ Checks:
    stubs the symbol, triggers the production caller, and asserts it was invoked.
    Symbol exists ≠ symbol used — and "source text mentions the call" ≠ "the call
    runs."
+   - **Seam altitude.** The seam AC's trigger must name the **outermost
+     production entry point** (route / command / event `publish` / tick), not an
+     intermediate helper the feature introduces. If wiring logic (a guard,
+     mapping, or once-per-transition/dedup check) sits between the entry point
+     and the stubbed symbol, an AC that triggers *below* it is a blocker — it
+     ships green while leaving the production path unproven, and the story
+     deadlocks in adversarial review (the notify-outbound US-005 failure mode).
+   - **Guarded-seam re-trigger.** If the wiring is guarded (once-per-transition,
+     dedup, idempotency), require a second seam AC that re-triggers the entry
+     point and asserts the symbol is NOT invoked again. Its absence is a finding.
 2. **"Replaces X" wiring.** Any "X replaces Y" / "supersedes Y" claim must have
    an AC asserting Y's former callers now invoke X (via a stub/spy on X) — not
    just that X exists.
@@ -151,9 +161,11 @@ Checks:
    or AC count >15 in a single story is a blocker, regardless of `maxAcCount`.
    The "single story with sub-deliverables" framing is rejected.
 
-**Blocker:** missing behavioral seam AC for a new exported symbol; removal-keyword
-match without a build/static-gate verification note (or encoded as a file-content
-AC); mixed additive+destructive story; sizing breach.
+**Blocker:** missing behavioral seam AC for a new exported symbol; seam AC that
+triggers an intermediate helper below the wiring instead of the named outermost
+entry point (seam-altitude violation); removal-keyword match without a
+build/static-gate verification note (or encoded as a file-content AC); mixed
+additive+destructive story; sizing breach.
 
 ### Phase 9 — PRD fidelity (only when `--prd` is passed)
 

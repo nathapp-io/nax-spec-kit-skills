@@ -233,6 +233,32 @@ A seam AC is a behavioural `[unit]` or `[integration]` test: stub/spy the new
 symbol, trigger the consumer's production path, and assert the symbol was invoked
 with the expected arguments. This proves the call site exists *and* is wired.
 
+**Seam altitude — name the entry point, not "the production path."** The trigger
+must be the **outermost production entry point a real user or event reaches** —
+an HTTP route, CLI command, event `publish`, or scheduled tick — named
+concretely, *not* an intermediate helper the feature itself introduces. When any
+wiring logic (a guard, a payload mapping, a once-per-transition/dedup check)
+sits **between** that entry point and the stubbed symbol, a test entering *below*
+it is green-but-blind: it proves *some* caller invokes the symbol, not that the
+real trigger does, through the guard. Downstream adversarial review will refuse
+to pass such a story, and it deadlocks. Enter the seam test **above** the wiring.
+
+If the wiring is **guarded** (once-per-transition, dedup, idempotency), add a
+second seam AC that **re-triggers the entry point and asserts the symbol is NOT
+invoked again** — a single-fire assertion cannot detect a missing guard.
+
+❌ **Insufficient — enters below the wiring (the notify-outbound US-005 pattern):**
+- `[integration]` call `dispatch_order_event(order, dispatcher)` directly with a
+  hand-built row; assert `notify_order_event` invoked once
+  *(bypasses the route and the `pre_status` transition-once guard where the
+  wiring actually lives — passes green, yet the production path is unproven)*
+
+✅ **Sufficient — enters at the named entry point, above the guard:**
+- `[integration]` `GET /api/portfolio/{id}/orders/{id}` with `fetch_order`
+  returning `filled`; assert `notify_order_event` invoked once with the order
+- `[integration]` re-poll the same order; assert `notify_order_event` is **not**
+  invoked again (transition-once guard)
+
 ```markdown
 ### Seams
 
