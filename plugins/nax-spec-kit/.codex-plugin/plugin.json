@@ -1,6 +1,6 @@
 {
   "name": "nax-spec-kit",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "description": "Spec authoring + audit workflow for coding agents: spec-writing (brainstorm → SPEC-*.md) and spec-review (ground a spec against the real codebase before implementation).",
   "author": {
     "name": "William Khoo",
