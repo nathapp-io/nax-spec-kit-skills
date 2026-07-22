@@ -18,7 +18,7 @@ A nine-phase audit that grounds an implementation spec in the actual codebase be
 ## When NOT to Activate
 
 - Spec is in active drafting (not yet stable) — review wastes effort
-- Spec is for greenfield code with no existing codebase to ground against — Phase 1/2/3 produce noise
+- Spec is for greenfield code with no existing codebase to ground against — Phase 1/2/3 produce noise (but Phase 8's data-availability seam still applies: it reconciles the spec's *own* new producer/consumer contracts against each other, not against code)
 - The request is "is this design good?" — that's a design review, use `architect` or `code-reviewer` instead. This skill checks internal consistency and grounding, not architecture quality.
 
 ## Inputs
@@ -160,12 +160,38 @@ Checks:
 5. **Sizing+.** Re-run the spec-writing hard splitting rules — Context Files >5
    or AC count >15 in a single story is a blocker, regardless of `maxAcCount`.
    The "single story with sub-deliverables" framing is rejected.
+6. **Data-availability seam (producer field ↔ consumer render).** For every AC
+   that renders, charts, plots, aggregates, or otherwise *derives a shape from*
+   another story's data contract (a report / DTO / response model), trace each
+   datum the derivation needs back to the producer contract's **declared fields**
+   — **even when the producer is new in this same spec.** Phase 2 grounds "X has
+   field Y" against existing source; when both the producer contract and the
+   consuming AC are forward-referenced in the same spec, Phase 2 has nothing to
+   diff against, so this is the **only** phase where the two new contracts get
+   reconciled. Flag any consumer AC whose visualization/derivation names data the
+   producer never emits:
+   - a **distribution / histogram** chart over a contract exposing only summary
+     percentiles or aggregates (no samples, bins, or raw series);
+   - a **time-series / bands / equity-curve** chart over a contract exposing only
+     per-bucket scalar summaries (no per-step series);
+   - any derived field (`producer.foo`) absent from the producer's declared shape.
+
+   Resolution is either **enrich the producer** (add a story/AC that emits the
+   required samples/series) or **descope the consumer AC** to the data that exists
+   — naming the real datum ("renders a p5/p50/p95 percentile strip") instead of a
+   data-rich chart type ("renders the distribution histogram"). Rationale: the
+   implementer cannot fabricate the missing data, so the AC ships an honest-but-
+   non-conforming render and the story deadlocks in semantic/adversarial review
+   (the backtest-robustness US-005 failure mode). Note the trap: such an AC often
+   passes its own `[unit]` test (a `data-testid` element is present) yet fails the
+   semantic reviewer, which reads the AC's literal noun ("histogram", "bands").
 
 **Blocker:** missing behavioral seam AC for a new exported symbol; seam AC that
 triggers an intermediate helper below the wiring instead of the named outermost
-entry point (seam-altitude violation); removal-keyword match without a
-build/static-gate verification note (or encoded as a file-content AC); mixed
-additive+destructive story; sizing breach.
+entry point (seam-altitude violation); a render / derivation AC that consumes data
+absent from the producer contract's declared fields (data-availability seam);
+removal-keyword match without a build/static-gate verification note (or encoded as
+a file-content AC); mixed additive+destructive story; sizing breach.
 
 ### Phase 9 — PRD fidelity (only when `--prd` is passed)
 
@@ -420,5 +446,5 @@ Do not run on every save during spec drafting.
 ## When phases 7-9 are mandatory
 
 - **Phase 7** runs whenever the spec carries AC mechanism tags (`[unit]` / `[integration]` / `[cli]`), or whenever the host project has adopted the verification-anchor convention. The `[grep]`, `[file]`, and `[verbatim]` tags are **deprecated and banned** — flag every occurrence as a blocker and rewrite the AC into a runtime behaviour (or, for removals, a build/static-gate note).
-- **Phase 8** runs whenever the spec contains removal keywords (`delete|remove|consolidate|retire|rename`), introduces new exported symbols (interfaces, ops, builder methods), or has a story with both additive and destructive ACs.
+- **Phase 8** runs whenever the spec contains removal keywords (`delete|remove|consolidate|retire|rename`), introduces new exported symbols (interfaces, ops, builder methods), has a story with both additive and destructive ACs, or has any AC that renders/charts/aggregates data from another story's contract (triggers the data-availability seam check).
 - **Phase 9** runs whenever `--prd <path>` is passed. Without `--prd`, phase 9 is skipped silently.

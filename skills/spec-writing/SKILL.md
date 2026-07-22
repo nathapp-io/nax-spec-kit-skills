@@ -176,6 +176,14 @@ For each seam:
   - **Seam altitude — name the entry point, not "the production path."** The trigger must be the **outermost production entry point a real user or event reaches** — an HTTP route, CLI command, event `publish`, scheduled tick — named concretely, *not* an intermediate helper the feature itself introduces. If any wiring logic (a guard, a payload mapping, a once-per-transition/dedup check) sits **between** that entry point and the stubbed symbol, the seam test must enter **above** it, or the wiring ships green-but-blind and downstream adversarial review will (correctly) refuse to pass it. Write "*trigger `GET /orders/{id}` with `fetch_order` returning `filled`*", never "*trigger order placement*". Triggering an intermediate helper directly is not exercising the production path — it tests the stub's stub.
   - **Guarded seams need a re-trigger AC.** If the wiring has once-per-transition, dedup, or idempotency logic, add a second seam AC that **re-triggers the entry point and asserts the symbol is NOT invoked again**. A single-fire assertion cannot detect a missing guard.
 
+There is a second, easily-missed seam: **data availability**. Seam invariants above track that B *invokes* A's symbol; they do **not** track that A's data contract actually *carries* every field B's ACs consume. Whenever a consumer AC renders, charts, plots, or aggregates data from a producer story's report/DTO/response model, check each datum it needs against the producer's declared fields:
+
+- A **distribution / histogram** chart needs samples, bins, or a raw series — a producer exposing only summary percentiles/aggregates (p5/p50/p95) cannot feed it.
+- A **time-series / bands / equity-curve** chart needs a per-step series — a producer exposing only per-bucket scalar summaries cannot feed it.
+- Any `producer.foo` a consumer AC references must be a declared field on the producer contract.
+
+If the visualization needs data the producer never emits, either **enrich the producer** (add the samples/series to its contract and an AC that produces them) or **write the consumer AC against the data that exists** — name the real datum ("renders a p5/p50/p95 percentile strip"), not a data-rich chart type ("renders the distribution histogram"). The richer noun ships an AC no implementer can satisfy without fabricating data: it may pass a `[unit]` test that only checks an element is present, yet deadlocks the story in semantic/adversarial review, which holds the render to the literal noun. spec-review Phase 8 re-checks this (data-availability seam) — resolve it at authoring time.
+
 #### Workdir assignment (monorepo only)
 
 If the repo is a **workspace monorepo** (detected in Phase 1 — `workspaces` in root `package.json`, `pnpm-workspace.yaml`, Cargo `[workspace]`, `go.work`, Nx/Turbo/Lerna config, or an existing `.nax/mono/` directory), **every story must declare a `Workdir`** — the package directory the story operates in, relative to the repo root.
@@ -190,7 +198,7 @@ If the repo is a **workspace monorepo** (detected in Phase 1 — `workspaces` in
 
 Propose the story list with dependencies (and per-story `Workdir` when monorepo) to the user. Confirm before proceeding.
 
-**Blocker:** sizing breach not resolved (over or under); removal keywords present with no terminal-cleanup story planned; new externally-visible symbol without a planned seam AC for its consumer story; **monorepo detected and any story is missing a `Workdir`, carries more than one package, or names a package path that is not a workspace member**.
+**Blocker:** sizing breach not resolved (over or under); removal keywords present with no terminal-cleanup story planned; new externally-visible symbol without a planned seam AC for its consumer story; a consumer AC that renders/charts/aggregates data absent from the producer contract's declared fields (data-availability seam); **monorepo detected and any story is missing a `Workdir`, carries more than one package, or names a package path that is not a workspace member**.
 
 **Output (written to file):** Stories section with 3-7 stories, dependency chain, `Context Files` (reads) and `Creates` (new files) per story, a single-valued `Workdir` per story when the repo is a monorepo, terminal-cleanup story if applicable, and a `### Seams` block listing cross-story invariants.
 
