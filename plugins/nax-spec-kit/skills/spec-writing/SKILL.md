@@ -73,7 +73,8 @@ Read the brainstorm source. Extract structured fields:
   parses into the PRD's `outOfScope` array and copies onto every story — the only
   channel by which a deferred arc reaches an implementer that never sees the spec.
   Capture each deferral as its own self-contained statement (see the guide's
-  [§`## Out of Scope`](reference/spec-writing-guide.md) contract). If the brainstorm
+  [reference/spec-writing-guide.md](reference/spec-writing-guide.md), section
+  "`## Out of Scope` — machine-extracted, write it to the contract"). If the brainstorm
   states nothing was deferred, say so explicitly and confirm with the user rather than
   leaving the field blank.
 - **Design decisions already made** — concrete choices (LLM vs AST, sync vs async, schema shape). *(capture if present)*
