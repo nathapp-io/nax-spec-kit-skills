@@ -1,6 +1,6 @@
 ---
 name: spec-review
-description: Use this skill to systematically review an implementation spec against the actual codebase before handing it off to implementers. Catches API hallucination (named symbols that don't exist), PRD↔code contradictions (proposed shapes incompatible with real schemas/types), convention violations (forbidden patterns, wrong file locations, unknown session roles), behavioral semantic drift (spec prose vs actual code behavior), sizing breaches (AC caps), stale references from earlier revisions, and (when --prd is passed) spec-to-PRD fidelity loss after `nax plan`. Invoke when the user asks to "review this spec", "check this spec against the codebase", "audit this spec for hallucination", "audit the PRD against the spec", or `/spec-review <path>`. Project-agnostic — loads `.nax/rules/` (nax-native, higher priority) and `.claude/rules/` dynamically.
+description: Use this skill to systematically review an implementation spec against the actual codebase before handing it off to implementers. Catches API hallucination (named symbols that don't exist), PRD↔code contradictions (proposed shapes incompatible with real schemas/types), convention violations (forbidden patterns, wrong file locations, unknown session roles), behavioral semantic drift (spec prose vs actual code behavior), sizing breaches (AC caps), out-of-scope sections written in a shape `nax plan` cannot extract, stale references from earlier revisions, and (when --prd is passed) spec-to-PRD fidelity loss after `nax plan` (including dropped out-of-scope statements). Invoke when the user asks to "review this spec", "check this spec against the codebase", "audit this spec for hallucination", "audit the PRD against the spec", or `/spec-review <path>`. Project-agnostic — loads `.nax/rules/` (nax-native, higher priority) and `.claude/rules/` dynamically.
 ---
 
 # Spec Review Skill
@@ -70,9 +70,10 @@ The only LLM-judgment phase. For each named check/function the spec describes be
 
 See [checklists/phase-5-sizing-hygiene.md](checklists/phase-5-sizing-hygiene.md).
 
-Mechanical: AC counts per story, story counts, duplicate detection, story name ↔ body alignment, dependency DAG validity.
+Mechanical: AC counts per story, story counts, duplicate detection, story name ↔ body alignment, dependency DAG validity, required sections present, and **`## Out of Scope` machine-extractability** (recognised heading, one self-contained bullet per exclusion — `nax plan` parses this section into `prd.outOfScope`, and an unrecognised shape is silently dropped).
 
 **Blocker:** AC count exceeds project cap (load from `config.precheck.storySizeGate.maxAcCount` or default 15).
+**Major:** missing required section; a deferral stated only in prose with no extractable `## Out of Scope` section.
 
 ### Phase 6 — Stale-reference sweep
 
@@ -266,7 +267,34 @@ Checks:
 5. **Meta-AC survival.** Spec meta-ACs (architectural invariants) must survive —
    either as a runtime PRD AC or as a build/static-gate verification note. Silent
    deletion is a blocker.
-6. **Sub-slice cleanup story.** If the spec has a terminal-cleanup story, the
+6. **Out-of-scope preservation (`prd.outOfScope`).** The PRD carries a top-level
+   `outOfScope` string array holding the spec's `## Out of Scope` / `## Non-Goals`
+   statements. `nax plan` backfills it deterministically, so a *missing* item almost
+   always means the spec section was written in a shape the extractor does not
+   recognise — go back to the spec (Phase 5 Step 8b), not to the PRD.
+
+   Checks:
+   - **a. Every spec exclusion present.** Each bullet in the spec's `## Out of Scope`
+     must appear in `prd.outOfScope` (the planner may expand the wording — "no Ink
+     TUI" → "no Ink TUI, deferred to arc 3" — but never drop or merge). A missing
+     item is a **blocker**: it means extraction failed, and every downstream story
+     is now free to build the deferred work.
+   - **b. Field absent while the spec defers work.** `prd.outOfScope` missing
+     entirely, while the spec has a recognised out-of-scope section, is a
+     **blocker** — the same extraction failure.
+   - **c. No exclusion became an AC.** An out-of-scope statement that surfaces in
+     any story's `acceptanceCriteria` is a **blocker** — the planner inverted "do
+     not do this" into work to verify.
+   - **d. Story-level echo.** A story whose `Scope — Out:` bullets or
+     `outOfScope` array contradict a feature-level exclusion (claiming the deferred
+     work is in scope) is a **blocker**. A story that simply does not echo a
+     feature-level item is **not a finding** — `nax plan` propagates the list onto
+     every story at load time, so the implementer sees it either way.
+   - **e. Orphan exclusions.** Entries in `prd.outOfScope` with no spec source are a
+     **minor** (usually the planner making an implicit boundary explicit), unless
+     one excludes something the spec's ACs actually require — then a **blocker**.
+
+7. **Sub-slice cleanup story.** If the spec has a terminal-cleanup story, the
    PRD's last story must be deletion-only (no additive ACs), and its removals must
    carry the build/static-gate verification note — not be re-encoded as
    file-content "does not contain" ACs.
@@ -275,7 +303,9 @@ Checks:
 file-content/grep AC or stripped of its asserted behaviour; meta-AC deleted;
 orphan PRD AC introducing material scope; terminal-cleanup story missing or
 contaminated with additive ACs; a self-`Creates` file placed in `contextFiles`
-instead of `expectedFiles`.
+instead of `expectedFiles`; a spec out-of-scope statement missing from
+`prd.outOfScope`, inverted into an acceptance criterion, or contradicted by a
+story's own scope declaration.
 
 **Major:** an upstream-dependency-produced file the spec listed under a consumer
 story's `Context Files` that the PRD dropped from `contextFiles` or mis-moved into

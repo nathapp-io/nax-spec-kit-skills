@@ -4,7 +4,7 @@ How to write specs that produce high-quality PRDs and successful nax runs.
 
 ## Structure
 
-A good spec has 5 sections. **All are required.**
+A good spec has 6 sections. **All are required.**
 
 ```markdown
 # SPEC: [Feature Name]
@@ -20,6 +20,9 @@ Key interfaces, data flow, or architecture decisions.
 Include TypeScript signatures when defining new APIs.
 For CLI tools: specify exit codes, stdout/stderr behavior, and file formats precisely.
 
+## Out of Scope
+What this feature deliberately does NOT do — one bullet per deferred item.
+
 ## Stories
 Break the feature into implementation units.
 Each story should be independently testable.
@@ -28,6 +31,34 @@ Include context files and dependency markers (see below).
 ## Acceptance Criteria
 Per-story behavioral criteria (see format below).
 ```
+
+### `## Out of Scope` — machine-extracted, write it to the contract
+
+This section is not prose for human readers. `nax plan` parses it deterministically
+into the PRD's top-level `outOfScope` array, backfills anything the planner dropped,
+and copies the result onto every story — which is how a deferred arc reaches the
+implementer at all. **The implementer never sees the spec.** A statement that is not
+in this section, in this shape, does not reach it.
+
+| Rule | Why |
+|:---|:---|
+| Use one of these headings verbatim: `## Out of Scope`, `## Non-Goals`, `## Not in scope` (case-insensitive, `-`/space variants fine) | Anything else is not recognised and the whole section is dropped |
+| **One bullet per deferred item** — `- <statement>` | Each bullet becomes one entry; a paragraph packing three exclusions becomes one unreadable entry |
+| Each bullet must be **self-contained** — name the thing, not "the above" or "this" | The implementer reads the bullet with no surrounding spec context |
+| Keep it under **25 items** | Beyond that the list is truncated, and it is a signal the feature is too large |
+| No fenced code blocks inside the section | They are folded as prose; put identifiers in backticks inline instead |
+| **Never phrase an exclusion as an acceptance criterion** | It describes work NOT to do; an AC is work to verify |
+
+An inline `**Out of scope (deferred):** …` lead-in is also recognised (anywhere in the
+spec, folded across wrapped lines) — useful for a story-local deferral. Prose that
+merely *mentions* being out of scope ("diff rendering is out of scope here because
+nothing persists it") is **not** recognised; it must be a heading section or a bold
+lead-in.
+
+**Feature-level vs story-level.** The `## Out of Scope` section states what the whole
+feature defers. A story's `**Out of scope:**` block under its AC block (Rule 10, risk
+properties) states what *that story* defers. Both are extracted; keep the distinction
+clear in the wording so an implementer can tell which boundary it is standing on.
 
 ## Acceptance Criteria Format
 

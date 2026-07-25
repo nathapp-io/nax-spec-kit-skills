@@ -68,7 +68,14 @@ Read the brainstorm source. Extract structured fields:
 - **Feature goal** — one sentence: what this does. *(required)*
 - **Motivation** — what's broken / missing / requested. *(required)*
 - **In-scope** — what this spec will deliver. *(required)*
-- **Out-of-scope** — what this spec explicitly defers. *(required)*
+- **Out-of-scope** — what this spec explicitly defers. *(required)* This is not a
+  throwaway field: it becomes the spec's `## Out of Scope` section, which `nax plan`
+  parses into the PRD's `outOfScope` array and copies onto every story — the only
+  channel by which a deferred arc reaches an implementer that never sees the spec.
+  Capture each deferral as its own self-contained statement (see the guide's
+  [§`## Out of Scope`](reference/spec-writing-guide.md) contract). If the brainstorm
+  states nothing was deferred, say so explicitly and confirm with the user rather than
+  leaving the field blank.
 - **Design decisions already made** — concrete choices (LLM vs AST, sync vs async, schema shape). *(capture if present)*
 - **Constraints** — performance, compatibility, security, deadlines. *(capture if present)*
 - **Naming choices** — type names, function names, file paths. *(capture if present — do not prompt the user to commit to names here; they emerge during Design)*
@@ -358,6 +365,9 @@ The skill writes a `SPEC-*.md` matching the guide's structure:
 ### File Format (if new format)
 ### Failure Handling
 
+## Out of Scope
+<from Phase 1's Out-of-scope field — one self-contained bullet per deferred item, machine-extracted by `nax plan`; see the guide's `## Out of Scope` contract>
+
 ## Stories
 <from Phase 4 — 3-7 stories with dependencies; each story carries a single-valued `Workdir: <package path>` when the repo is a monorepo>
 ### Seams
@@ -381,6 +391,7 @@ After writing, produce a single-message summary to the user:
 - Terminal-cleanup story: <yes/no> (removals verified via build/static gate: <command>)
 - Seam ACs declared: <count>
 - Risk-sensitive stories: <count> — each risk property pinned as an AC or declared out of scope
+- Feature-level `## Out of Scope`: <count> bullets (extractable by `nax plan` into `prd.outOfScope`)
 - Monorepo: <yes/no> — when yes, each story scoped to a `Workdir` (<list of distinct package paths>)
 
 ## User decisions captured

@@ -88,6 +88,7 @@ Per spec-writing.md, every spec must have:
 - Summary
 - Motivation
 - Design
+- Out of Scope
 - Stories
 - Acceptance Criteria
 
@@ -100,6 +101,37 @@ For CLI-tool specs, additionally verify Design includes:
 
 For schema-introducing specs, additionally verify Design includes:
 - A complete example with every supported field
+
+## Step 8b — `## Out of Scope` is machine-extractable
+
+`nax plan` parses this section deterministically into the PRD's top-level
+`outOfScope` array and copies it onto every story — the only channel by which a
+deferred arc reaches an implementer that never sees the spec. A section written
+in a shape the parser does not recognise is silently dropped, and nothing
+downstream will notice.
+
+```bash
+# Is the heading one the parser recognises?
+grep -nEi '^#{1,6} *(out[ -]?of[ -]?scope|non[ -]?goals?|not in scope)\b' <spec-path>
+
+# Are the items bullets?
+awk 'tolower($0) ~ /^#{1,6} *(out[ -]?of[ -]?scope|non[ -]?goals?|not in scope)/{f=1;next} f && /^#{1,6} /{exit} f' <spec-path>
+```
+
+Flag, per finding:
+
+| Condition | Severity |
+|:---|:---|
+| No recognised heading **and** no inline `**Out of scope …:**` lead-in, while the spec's prose clearly defers work ("deferred to a later arc", "a later phase will…") | **MAJOR** — the deferral never reaches the implementer |
+| Section present but written as one prose paragraph packing several exclusions | **MAJOR** — collapses to a single unreadable entry; split into one bullet each |
+| A bullet that is not self-contained ("the above", "this", "it") | **MAJOR** — the implementer reads the bullet with no spec context |
+| A fenced code block inside the section | **MINOR** — folded as prose; use inline backticks |
+| More than 25 bullets | **MINOR** — the parser truncates, and the feature is probably too large |
+| An exclusion phrased as an acceptance criterion ("the system does not expose X" under Acceptance Criteria) | **MAJOR** — it is work NOT to do; move it to `## Out of Scope` |
+
+Recognised inline form (also extracted, anywhere in the spec):
+`**Out of scope (deferred):** <statement>`. Prose that merely mentions being out
+of scope is **not** extracted.
 
 ## Step 9 — AC quality spot-check (mechanical heuristics)
 
@@ -136,3 +168,4 @@ Flag the following AC patterns as **MINOR** (these are smells, not always wrong)
 - Missing Context Files section for a late-added story
 - ACs containing meta-criteria ("tests pass") that should be removed
 - Vague-verb ACs ("handles correctly")
+- A deferral stated only in Design prose, with no `## Out of Scope` section — `nax plan` extracts nothing, and the implementer is free to build the deferred arc
