@@ -276,20 +276,34 @@ Checks:
    Checks:
    - **a. Every spec exclusion present.** Each bullet in the spec's `## Out of Scope`
      must appear in `prd.outOfScope` (the planner may expand the wording — "no Ink
-     TUI" → "no Ink TUI, deferred to arc 3" — but never drop or merge). A missing
-     item is a **blocker**: it means extraction failed, and every downstream story
-     is now free to build the deferred work.
+     TUI" → "no Ink TUI, deferred to arc 3" — but never drop or merge).
+     A missing item is a **blocker** *unless* the spec declares more than 25
+     exclusions — the cap truncates past `MAX_OUT_OF_SCOPE_ITEMS`, so grade that a
+     **minor** and recommend consolidating.
+     **The planner is never the cause.** `applyOutOfScopeFallback` restores dropped
+     items on every plan path and orders them ahead of the planner's own, so a
+     genuine miss means *extraction* failed: an unrecognised heading shape, or a
+     declaration sitting after the `## Stories` boundary (story-scoped by design).
+     Go back to the spec, not the PRD.
    - **b. Field absent while the spec defers work.** `prd.outOfScope` missing
-     entirely, while the spec has a recognised out-of-scope section, is a
-     **blocker** — the same extraction failure.
+     entirely is a **blocker only when the spec's section names at least one real
+     exclusion.** A section whose entire body is a sentinel (`None`, `N/A`, `TBD`,
+     `-`, `Nothing`) is filtered by design and correctly produces no field — not a
+     finding. The sentinel list is exact, so `Nothing is deferred.` is *not*
+     filtered and becomes an entry shown to every implementer as a hard boundary;
+     flag that as a **minor** and ask for a bare `None.`
    - **c. No exclusion became an AC.** An out-of-scope statement that surfaces in
      any story's `acceptanceCriteria` is a **blocker** — the planner inverted "do
      not do this" into work to verify.
-   - **d. Story-level echo.** A story whose `Scope — Out:` bullets or
+   - **d. Story-level echo.** A story whose planner-emitted `**Scope** — Out:`
+     description bullets (a PRD convention, not a spec one) or
      `outOfScope` array contradict a feature-level exclusion (claiming the deferred
      work is in scope) is a **blocker**. A story that simply does not echo a
      feature-level item is **not a finding** — `nax plan` propagates the list onto
-     every story at load time, so the implementer sees it either way.
+     every story at load time, so the implementer sees it either way. Note the root
+     field is the on-disk SSOT: `savePRD` strips the mirrored copies, so an empty
+     `story.outOfScope` in `prd.json` is expected and is *not* evidence that
+     propagation failed.
      Conversely, a **per-story** deferral from the spec (a `**Out of scope:**` block
      under a story's AC block) must NOT appear in `prd.outOfScope` — it is
      story-scoped, and hoisting it would impose one story's boundary on all of them.

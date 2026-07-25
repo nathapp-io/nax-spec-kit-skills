@@ -45,7 +45,7 @@ in this section, in this shape, does not reach it.
 | Title the section `Out of Scope`, `Non-Goals`, or `Not in scope` | Any other title is not recognised and the whole section is dropped. Case, `-`/space variants, a trailing colon, surrounding `**bold**`, and setext underlining are all tolerated |
 | **One bullet per deferred item** — `- <statement>` | Each bullet becomes one entry; a paragraph packing three exclusions becomes one unreadable entry. `-`, `*`, `+`, `1.` and `•` all work. A table works too: each data row becomes one item (`cell — cell`), the header row is skipped |
 | Each bullet must be **self-contained** — name the thing, not "the above" or "this" | The implementer reads the bullet with no surrounding spec context |
-| Keep it under **25 items** | Beyond that the list is truncated, and it is a signal the feature is too large |
+| Keep it to **25 items or fewer** | The cap keeps exactly 25 and is document-wide (all sections plus inline markers combined); anything past that is truncated, and it is a signal the feature is too large |
 | **Never phrase an exclusion as an acceptance criterion** | It describes work NOT to do; an AC is work to verify |
 
 Safely ignored, so you do not have to work around them: fenced code blocks inside the
@@ -53,9 +53,18 @@ section (a spec that documents markdown by example will not inject a fake exclus
 a `None.` / `N/A` placeholder, and a trailing-colon lead-in above a list ("The
 following are deferred:").
 
+Two inline-marker forms work: text on the same line as the marker, and a bare
+`**Out of scope:**` on its own line with a bullet list beneath it (each bullet becomes
+an entry). Do **not** put `*`/`_` emphasis inside the marker itself —
+`**Out of scope (see *note*):**` is not recognised and the whole declaration is lost.
+
 Prose that merely *mentions* being out of scope ("diff rendering is out of scope here
 because nothing persists it") is **not** recognised — it must be a section or a bold
 lead-in.
+
+One more trap: `None.` / `N/A` / `TBD` are filtered as "nothing deferred", but a
+sentence like `Nothing is deferred.` is not — it becomes a real entry and is rendered
+to every implementer as a hard boundary. Write a bare `None.`
 
 **Feature-level vs story-level — where you put it decides what it means.**
 
@@ -68,15 +77,27 @@ and copied onto *every* story) only when it is:
   `## Stories` / `## Acceptance Criteria` heading (i.e. in Summary or Design).
 
 A `**Out of scope:**` block under a story's AC block — the Rule 10 risk-property
-deferral — is **story-scoped** and is deliberately *not* extracted. That is correct:
-hoisting it would tell US-001's implementer that US-002's deferred work is a hard
-boundary. spec-review Phase 4 still reads those per-story blocks for the
-adversarial-scope check, and `nax plan` carries them into that story's
-`**Scope** — Out:` bullet.
+deferral — is **story-scoped** and deliberately *not* extracted. Hoisting it would
+tell US-001's implementer that US-002's deferred work is a hard boundary.
 
-So: put a whole-feature exclusion in `## Out of Scope`. Put a single story's deferred
-risk property under that story's AC block. Do not use a bold lead-in after the story
-sections begin and expect it to reach every story — it will not.
+**But know what that costs.** Nothing deterministic carries a story-local block into
+`prd.json`. The planner is *asked* to fill the story's `outOfScope` field, and it
+usually does — but unlike the feature-level list there is no backfill, so it is not
+guaranteed. The adversarial reviewer only ever sees `story.outOfScope`. If the
+planner omits it, the property you thought you deferred is silent again — the exact
+condition Rule 10 exists to prevent.
+
+So, for a risk property you are deferring:
+
+- Keep the story-local `**Out of scope:**` block — spec-review Phase 4 reads it, and
+  it is what a human reviewer looks for.
+- **If the property is one an adversarial reviewer would plausibly block on, also add
+  a feature-level bullet naming the story**: `- US-002 only: finalize write-back
+  atomicity is deferred to arc 3`. That path is guaranteed, and the story prefix
+  keeps the boundary readable for the other stories' implementers.
+
+Never use a bold lead-in *after* the story sections begin and expect it to reach
+every story — it reaches none.
 
 ## Acceptance Criteria Format
 
