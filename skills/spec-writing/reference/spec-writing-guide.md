@@ -42,23 +42,41 @@ in this section, in this shape, does not reach it.
 
 | Rule | Why |
 |:---|:---|
-| Use one of these headings verbatim: `## Out of Scope`, `## Non-Goals`, `## Not in scope` (case-insensitive, `-`/space variants fine) | Anything else is not recognised and the whole section is dropped |
-| **One bullet per deferred item** — `- <statement>` | Each bullet becomes one entry; a paragraph packing three exclusions becomes one unreadable entry |
+| Title the section `Out of Scope`, `Non-Goals`, or `Not in scope` | Any other title is not recognised and the whole section is dropped. Case, `-`/space variants, a trailing colon, surrounding `**bold**`, and setext underlining are all tolerated |
+| **One bullet per deferred item** — `- <statement>` | Each bullet becomes one entry; a paragraph packing three exclusions becomes one unreadable entry. `-`, `*`, `+`, `1.` and `•` all work. A table works too: each data row becomes one item (`cell — cell`), the header row is skipped |
 | Each bullet must be **self-contained** — name the thing, not "the above" or "this" | The implementer reads the bullet with no surrounding spec context |
 | Keep it under **25 items** | Beyond that the list is truncated, and it is a signal the feature is too large |
-| No fenced code blocks inside the section | They are folded as prose; put identifiers in backticks inline instead |
 | **Never phrase an exclusion as an acceptance criterion** | It describes work NOT to do; an AC is work to verify |
 
-An inline `**Out of scope (deferred):** …` lead-in is also recognised (anywhere in the
-spec, folded across wrapped lines) — useful for a story-local deferral. Prose that
-merely *mentions* being out of scope ("diff rendering is out of scope here because
-nothing persists it") is **not** recognised; it must be a heading section or a bold
+Safely ignored, so you do not have to work around them: fenced code blocks inside the
+section (a spec that documents markdown by example will not inject a fake exclusion),
+a `None.` / `N/A` placeholder, and a trailing-colon lead-in above a list ("The
+following are deferred:").
+
+Prose that merely *mentions* being out of scope ("diff rendering is out of scope here
+because nothing persists it") is **not** recognised — it must be a section or a bold
 lead-in.
 
-**Feature-level vs story-level.** The `## Out of Scope` section states what the whole
-feature defers. A story's `**Out of scope:**` block under its AC block (Rule 10, risk
-properties) states what *that story* defers. Both are extracted; keep the distinction
-clear in the wording so an implementer can tell which boundary it is standing on.
+**Feature-level vs story-level — where you put it decides what it means.**
+
+`nax plan` treats a declaration as **feature-level** (extracted into `prd.outOfScope`
+and copied onto *every* story) only when it is:
+
+- a top-level `## Out of Scope` section — anywhere in the document, including after
+  the story sections; or
+- an inline `**Out of scope (deferred):** …` lead-in appearing **before** the first
+  `## Stories` / `## Acceptance Criteria` heading (i.e. in Summary or Design).
+
+A `**Out of scope:**` block under a story's AC block — the Rule 10 risk-property
+deferral — is **story-scoped** and is deliberately *not* extracted. That is correct:
+hoisting it would tell US-001's implementer that US-002's deferred work is a hard
+boundary. spec-review Phase 4 still reads those per-story blocks for the
+adversarial-scope check, and `nax plan` carries them into that story's
+`**Scope** — Out:` bullet.
+
+So: put a whole-feature exclusion in `## Out of Scope`. Put a single story's deferred
+risk property under that story's AC block. Do not use a bold lead-in after the story
+sections begin and expect it to reach every story — it will not.
 
 ## Acceptance Criteria Format
 

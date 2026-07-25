@@ -111,27 +111,37 @@ in a shape the parser does not recognise is silently dropped, and nothing
 downstream will notice.
 
 ```bash
-# Is the heading one the parser recognises?
-grep -nEi '^#{1,6} *(out[ -]?of[ -]?scope|non[ -]?goals?|not in scope)\b' <spec-path>
+# Is the section title one the parser recognises? (emphasis / trailing colon tolerated)
+grep -nEi '^#{1,6} *[*`]* *(out[ -]?of[ -]?scope|non[ -]?goals?|not in scope)' <spec-path>
 
-# Are the items bullets?
-awk 'tolower($0) ~ /^#{1,6} *(out[ -]?of[ -]?scope|non[ -]?goals?|not in scope)/{f=1;next} f && /^#{1,6} /{exit} f' <spec-path>
+# Setext form — a bare title underlined with === or ---
+grep -nEiA1 '^ *(out[ -]?of[ -]?scope|non[ -]?goals?|not in scope) *:? *$' <spec-path>
+
+# Feature-level inline markers must appear BEFORE the story sections
+awk '/^#{1,3} *(Stories|Acceptance Criteria)/{print NR": STORY BOUNDARY"; exit} /\*\*Out of scope/{print NR": "$0}' <spec-path>
 ```
 
 Flag, per finding:
 
 | Condition | Severity |
 |:---|:---|
-| No recognised heading **and** no inline `**Out of scope …:**` lead-in, while the spec's prose clearly defers work ("deferred to a later arc", "a later phase will…") | **MAJOR** — the deferral never reaches the implementer |
+| No recognised section **and** no inline `**Out of scope …:**` lead-in before the story sections, while the spec's prose clearly defers work ("deferred to a later arc", "a later phase will…") | **MAJOR** — the deferral never reaches the implementer |
 | Section present but written as one prose paragraph packing several exclusions | **MAJOR** — collapses to a single unreadable entry; split into one bullet each |
 | A bullet that is not self-contained ("the above", "this", "it") | **MAJOR** — the implementer reads the bullet with no spec context |
-| A fenced code block inside the section | **MINOR** — folded as prose; use inline backticks |
+| A **feature-wide** exclusion written only as a `**Out of scope:**` lead-in *after* the first `## Stories` / `## Acceptance Criteria` heading | **MAJOR** — the parser treats post-boundary lead-ins as story-scoped, so it never becomes feature-level. Move it to a `## Out of Scope` section |
 | More than 25 bullets | **MINOR** — the parser truncates, and the feature is probably too large |
 | An exclusion phrased as an acceptance criterion ("the system does not expose X" under Acceptance Criteria) | **MAJOR** — it is work NOT to do; move it to `## Out of Scope` |
 
-Recognised inline form (also extracted, anywhere in the spec):
-`**Out of scope (deferred):** <statement>`. Prose that merely mentions being out
-of scope is **not** extracted.
+**Not findings** — the parser handles these safely: fenced code blocks inside the
+section, `-`/`*`/`+`/`1.`/`•` bullet markers, markdown tables (one item per data row),
+a `None.`/`N/A` placeholder, a trailing-colon lead-in above a list, and CRLF endings.
+
+**Scope boundary.** A declaration is feature-level only when it is a top-level
+`## Out of Scope` section (anywhere), or an inline `**Out of scope …:**` lead-in
+*before* the first `## Stories` / `## Acceptance Criteria` heading. A per-story
+`**Out of scope:**` block under a story's AC block is story-scoped by design — do
+**not** flag it as a missing feature-level declaration; Phase 4's adversarial-scope
+check is what reads it.
 
 ## Step 9 — AC quality spot-check (mechanical heuristics)
 

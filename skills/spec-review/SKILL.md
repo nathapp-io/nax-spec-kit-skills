@@ -290,6 +290,10 @@ Checks:
      work is in scope) is a **blocker**. A story that simply does not echo a
      feature-level item is **not a finding** — `nax plan` propagates the list onto
      every story at load time, so the implementer sees it either way.
+     Conversely, a **per-story** deferral from the spec (a `**Out of scope:**` block
+     under a story's AC block) must NOT appear in `prd.outOfScope` — it is
+     story-scoped, and hoisting it would impose one story's boundary on all of them.
+     Finding it at feature level is a **major**.
    - **e. Orphan exclusions.** Entries in `prd.outOfScope` with no spec source are a
      **minor** (usually the planner making an implicit boundary explicit), unless
      one excludes something the spec's ACs actually require — then a **blocker**.
