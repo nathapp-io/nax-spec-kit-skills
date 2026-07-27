@@ -61,10 +61,10 @@ Load every rule file under the project's rule store(s) — `.nax/rules/` (nax-na
 
 See [checklists/phase-4-behavioral-semantic.md](checklists/phase-4-behavioral-semantic.md).
 
-The only LLM-judgment phase. For each named check/function the spec describes behaviorally, open the actual implementation and confirm prose matches code semantics. Also runs two completeness checks: **under-specified input classes** (an input dimension no AC pins and no Out-of-scope entry defers) and the **adversarial-scope gap** (a risk-sensitive story — auth, rate limiting, replay/MFA, idempotency/dedup stores, tenancy, concurrency, expiry, crypto — that leaves any canonical risk property of its domain neither pinned by a property-style AC nor named in an Out-of-scope entry; checked **per-property**, so a present-but-partial Out-of-scope section does not cover the properties it stays silent about; a predictable adversarial-review deadlock, flagged major).
+The only LLM-judgment phase. For each named check/function the spec describes behaviorally, open the actual implementation and confirm prose matches code semantics. Also runs three completeness checks: **unpinned failure-handling rows** (a Failure Handling row with no covering AC and no out-of-scope entry — the planner authors it instead, so the spec loses control of wording that Rule 2 makes load-bearing), **under-specified input classes** (an input dimension no AC pins and no Out-of-scope entry defers) and the **adversarial-scope gap** (a risk-sensitive story — auth, rate limiting, replay/MFA, idempotency/dedup stores, tenancy, concurrency, expiry, crypto — that leaves any canonical risk property of its domain neither pinned by a property-style AC nor named in an Out-of-scope entry; checked **per-property**, so a present-but-partial Out-of-scope section does not cover the properties it stays silent about; a predictable adversarial-review deadlock, flagged major).
 
 **Blocker:** spec prose describes different semantics than the code implements (e.g. "rejects uncited PRD claims" when the code measures manifest verification rate).
-**Major:** under-specified input class; adversarial-scope gap on a risk-sensitive story.
+**Major:** under-specified input class; adversarial-scope gap on a risk-sensitive story; a `### Failure Handling` row with neither a covering AC nor an out-of-scope entry (the planner authors it instead, in its own words).
 
 ### Phase 5 — Sizing & hygiene
 

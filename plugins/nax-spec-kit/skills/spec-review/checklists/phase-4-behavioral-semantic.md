@@ -98,6 +98,16 @@ If a class is exercised by no AC's test **and** not listed in the spec's **Out-o
 
 **Recommended fix:** add an AC pinning the class's behavior, **or** move it to Out-of-scope. Never leave it silent for the reviewers to arbitrate.
 
+### Unpinned failure-handling row (completeness)
+
+A row in the spec's `### Failure Handling` design subsection (or `## Failure Modes` prose) with **neither a covering AC in its owning story nor an entry in that story's `Out of scope`** is an authoring gap, not a planner one.
+
+Why it matters: `nax plan` treats a failure-mode row without an AC as a *missing* AC and authors one itself. The criterion ships either way — the question is only whether the spec or the planner chose its wording, and per the spec-writing guide's Rule 2 that wording is the reviewer's verbatim quote surface. A planner-authored failure AC is one nobody gave a locus token to. Observed: `short-selling` (+3), `sp4-mfa-step-up` (+3), and `cost-ledger` (+1) all gained planner-written failure-path ACs traceable to Failure Handling prose the spec never encoded.
+
+Detection: enumerate the rows of each story's Failure Handling subsection; for each, look for an AC asserting that behaviour, or an `Out of scope` entry naming it. Flag **major** (it predicts wording loss, not incorrectness).
+
+**Do not flag the inverse.** An AC covering a negative path the design does *not* state is not a finding here — unanticipated edge cases legitimately belong in the planner's `suggestedCriteria`, which is advisory and promoted into `acceptanceCriteria` only after it passes. Do not recommend pinning speculative failure paths into the spec: that converts a safe suggestion into a blocking criterion and spends the story's AC budget.
+
 ### Adversarial-scope gap (risk-sensitive stories)
 
 A story whose subject matter is **risk-sensitive** — authentication/sessions, rate limiting/counters, replay protection (TOTP/OTP/MFA/nonce), idempotency/dedup stores (reserve-then-finalize, upsert), multi-tenancy scoping, concurrency/atomicity (check-then-act, upsert, locks), expiry/TTL/retention, crypto/secrets — but which leaves any of that domain's **canonical risk properties** (atomicity, window expiry, replay rejection, tenant scoping, expiry filtering, finalize/write-back atomicity) **neither pinned by a property-style AC nor named in an `Out of scope` entry**, is a predictable adversarial-review deadlock.
@@ -150,3 +160,4 @@ Run this check by:
 - ACs pin sync-factory behavior (true→wire, false→throw) but never define async factories — undefined input class the reviewers later demand contradictory behavior for
 - IAM-store story with 7 happy-path passthrough ACs and no atomicity/replay/tenancy AC or out-of-scope declaration — adversarial reviewer blocked ~18 rounds on the silent properties
 - Reserve-then-finalize store whose `Out of scope` defers tenancy + eviction but never names the finalize write-back's atomicity — the present-but-partial deferral that still deadlocks, because coverage must be per-property
+- A `### Failure Handling` row ("warn and skip an unmarked position") with no covering AC and no out-of-scope entry — the planner writes the AC instead, in its own words, with no locus token
