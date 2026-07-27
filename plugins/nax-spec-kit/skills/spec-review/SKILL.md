@@ -183,8 +183,18 @@ Checks:
        | condition | why it ships broken |
        |:---|:---|
        | No path exists from the named entry point to the stubbed symbol | the acceptance test can never go green |
-       | A path exists only behind an enabling flag / config guard the AC does not establish | the test's default fixture takes the short-circuit branch |
+       | A path exists only behind an enabling flag / config guard that **nothing in the spec establishes** | the test's default fixture takes the short-circuit branch |
        | The path reaches the symbol but not the **method** the AC names | there is no such call to assert |
+
+       On the guard condition, check the **whole spec before flagging**, not the
+       AC in isolation. The guard is satisfied if the AC's own fixture sets it,
+       **or** a sibling AC / the spec's design makes it production config the
+       story creates. Only flag when *nothing* turns it on. Real near-miss: an AC
+       asserting `POST /oauth/token` invokes the idempotency store's
+       `putIfAbsent` reads as gated — the interceptor short-circuits unless
+       `idempotency.enabled === true` — but a sibling AC in the same story
+       declared that option true as production config, so the path was sound.
+       Flagging it would have been a false positive on a correct spec.
 
        Rationale: this class is invisible to every other phase. Phase 1 confirms
        both symbols exist, Phase 2 confirms their shapes, Phase 4 scans *prose*
@@ -244,8 +254,8 @@ Checks:
 triggers an intermediate helper below the wiring instead of the named outermost
 entry point (seam-altitude violation); **Class B seam AC whose named entry point
 does not reach the stubbed symbol, reaches it only behind an enabling flag/guard
-the AC does not establish, or does not reach the specific method the AC names
-(seam-path reality)**; a render / derivation AC that consumes data
+**nothing in the spec establishes**, or does not reach the specific method the AC
+names (seam-path reality)**; a render / derivation AC that consumes data
 absent from the producer contract's declared fields (data-availability seam);
 removal-keyword match without a build/static-gate verification note (or encoded as
 a file-content AC); mixed additive+destructive story; sizing breach.
