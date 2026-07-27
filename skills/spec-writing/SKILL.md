@@ -229,27 +229,17 @@ For each story, draft ACs in two tracks:
 **Track A — Behavioural ACs.** Per the guide's "Acceptance Criteria Format":
 
 - One AC = one assertion.
-- Concrete identifiers (function names, return types, error messages) — at least one per AC. Guide Rule 2 explains why this is a convergence control: AC text is the reviewer's only groundable quote surface, so a vague AC is a wide one.
+- Concrete identifiers (function names, return types, error messages) — at least one per AC; it is the reviewer's only groundable quote surface (guide Rule 2).
 - Specifies HOW things connect.
 - No quality gates, no meta-ACs about tests passing, no vague verbs.
-- **Pin every meaningful input class** (guide Rule 9). If a function's inputs split into behaviorally distinct classes (sync vs async, present vs absent, valid vs malformed), draft an AC for each class handled and defer the rest to **Out-of-scope**. An input class left undefined by every AC becomes contested territory where semantic and adversarial reviewers demand contradictory behavior and the story cannot converge.
-- **Pin every applicable risk property, or declare it out of scope** (guide Rule 10 — the adversarial-scope rule). If a story touches a **risk-sensitive domain**, enumerate that domain's canonical risk properties and, for each one, either (a) encode it as an executable AC — they are all testable — or (b) list it in the story's **Out of scope** declaration with a one-line reason. A risk property left silent is contested territory for the downstream adversarial reviewer: it can substantiate a factually-true but out-of-scope finding against a verbatim AC quote and block the story indefinitely (real case: an IAM-persistence story with only happy-path passthrough ACs looped ~18 adversarial rounds on atomicity/replay/tenancy concerns none of its ACs mentioned, and had to be stopped manually).
+- **Pin every meaningful input class** (guide Rule 9). For a function whose inputs split into behaviourally distinct classes (sync vs async, present vs absent, valid vs malformed), write an AC per class handled and defer the rest to **Out-of-scope**. A class left silent is contested territory the reviewers cannot converge on.
+- **Pin every applicable risk property, or declare it out of scope** (guide Rule 10 — the adversarial-scope rule; the canonical per-domain property table lives there). If a story touches a risk-sensitive domain — auth/sessions, rate limiting, replay (TOTP/OTP/MFA/nonce), idempotency/dedup stores, multi-tenancy, concurrency/atomicity, expiry/TTL, crypto/secrets — enumerate that domain's properties and either encode each as an executable AC or list it in the story's **Out of scope** with a one-line reason. Coverage is **per property**: a partial Out-of-scope section does not cover what it does not name.
 
-  | Risk-sensitive domain (trigger keywords) | Canonical risk properties to pin or declare |
-  |:---|:---|
-  | Authentication / sessions (`auth`, `login`, `token`, `session`) | credential validation on every path; expiry honored; failure states distinguishable |
-  | Rate limiting / counters (`rate limit`, `attempt`, `counter`, `window`) | window expiry/reset; atomicity under concurrent increment |
-  | Replay protection (`replay`, `nonce`, `TOTP`, `OTP`, `MFA`) | time-step/window derivation; reuse-within-window rejected |
-  | Multi-tenancy (`tenant`, `org`, `workspace` scoping) | every read/write scoped by tenant; tenant field required, not nullable |
-  | Concurrency / atomicity (`race`, `lock`, `transaction`, `upsert`) | check-then-act paths atomic or explicitly declared best-effort |
-  | Expiry / retention (`TTL`, `expiresAt`, `retention`) | expired rows excluded from reads; cleanup semantics |
-  | Crypto / secrets (`hash`, `encrypt`, `secret`, `key`) | algorithm/strength named; secrets never logged or returned |
+- **Pin every failure-handling row, or defer it** (guide Rule 11). Every row in the story's `### Failure Handling` subsection must produce at least one AC in its owning story, or appear in that story's **Out of scope**. Otherwise `nax plan` authors the AC itself, in its own words. **Non-goal:** pin only rows the design already states — unanticipated negative paths belong in the planner's `suggestedCriteria`.
 
-  Match is on the story's *subject matter* (title, design touchpoints, symbols), not incidental word use. The out-of-scope route is legitimate and cheap — the point is that the spec, not a downstream reviewer, decides the story's scope boundary.
 
-- **Pin every failure-handling row, or defer it** (guide Rule 11). Every row in the story's `### Failure Handling` design subsection must produce at least one AC in the story that owns it, or appear in that story's **Out of scope** with a one-line reason. `nax plan` treats a failure-mode row with no AC as a *missing* AC and writes one itself, so the criterion ships either way — the only question is whether you or the planner chose its wording, and per Rule 2 that wording is the reviewer's quote surface. **Non-goal:** this covers rows the design already states. Do *not* invent edge cases to pin — unanticipated negative paths belong in the planner's `suggestedCriteria`, which is advisory and promoted only after it passes. A speculative pin becomes a blocking, possibly permanently-red AC and spends budget against the story's cap.
+- **Prefix every hoisted deferral with `US-00N only:`** (guide § per-story deferrals). Keep the story-local `**Out of scope:**` block; when the deferred property is one an adversarial reviewer would plausibly block on, *also* add a feature-level bullet — only that list is backfilled deterministically. The prefix is mandatory: `nax plan` copies the feature list onto every story, so an unprefixed hoist waives the property everywhere.
 
-- **Prefix every hoisted deferral with `US-00N only:`** (guide § per-story deferrals). Keep the story-local `**Out of scope:**` block, and when a deferred property is one an adversarial reviewer would plausibly block on, *also* add a feature-level `## Out of Scope` bullet — because only the feature-level list is backfilled deterministically. That hoisted bullet **must** carry the `US-00N only:` prefix: `nax plan` copies the feature-level list onto every story, so an unprefixed hoist imposes one story's waiver on all of them and lets the reviewer close legitimate findings elsewhere. Unprefixed hoists are flagged by spec-review; prefixed ones are accepted as intentional. A deferral that genuinely applies feature-wide takes no prefix.
 
 **Track B — Verification anchoring.** This is not a second list of ACs — it is the rule that every Track A AC must itself *be* the executable anchor (a real runtime test the implementer writes fail-first, then makes pass), plus the extra anchors (seam ACs, gate notes) below. Translate each mechanical claim into the behaviour that proves it:
 
@@ -330,9 +320,13 @@ Do **not** invoke spec-review's Phase 9 (PRD fidelity) — there is no PRD yet. 
 
 ## Operational rules
 
-### Guide is source of truth
+### One fact, one home
 
-This skill is the SSOT for spec-writing rules. See [reference/spec-writing-guide.md](reference/spec-writing-guide.md) for the full reference. Every phase enforces the rules defined there.
+[reference/spec-writing-guide.md](reference/spec-writing-guide.md) is the **rule SSOT**: it owns rule statements, formats, lookup tables, rationale, and evidence. This file owns the **workflow** — phase order, what each phase produces, and what blocks it.
+
+So when a phase enforces a guide rule, state the directive and cite the rule (`guide Rule 9`); do **not** restate its reasoning here. Corpus statistics, real-case anecdotes, and "why this matters" belong in the guide. A rule explained in both files will drift, and this file is loaded on every invocation while the guide is read on demand — duplication costs context on every run.
+
+The same split applies to spec-review: its `SKILL.md` carries the phase contract, its `checklists/` carry the procedure.
 
 ### Dialogue cadence
 
