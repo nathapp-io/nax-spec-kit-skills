@@ -96,6 +96,16 @@ So, for a risk property you are deferring:
   atomicity is deferred to arc 3`. That path is guaranteed, and the story prefix
   keeps the boundary readable for the other stories' implementers.
 
+  **The `US-00N only:` prefix is mandatory on every hoisted bullet, not a
+  formatting nicety.** `nax plan` denormalises the feature-level list onto *every*
+  story, so an unprefixed hoist silently imposes one story's waiver on all of them
+  — and the adversarial reviewer can cite it to close a legitimate finding in a
+  story the waiver was never meant to cover. The prefix is the only thing
+  distinguishing a deliberate story-scoped boundary from an over-broad one, and
+  spec-review keys on it: prefixed hoists are accepted as intentional, unprefixed
+  ones are flagged. If a deferral genuinely applies to the whole feature, write it
+  without a prefix — that is a different (and fine) statement.
+
 Never use a bold lead-in *after* the story sections begin and expect it to reach
 every story — it reaches none.
 

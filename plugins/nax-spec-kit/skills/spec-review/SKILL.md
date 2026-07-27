@@ -371,9 +371,23 @@ Checks:
      `story.outOfScope` in `prd.json` is expected and is *not* evidence that
      propagation failed.
      Conversely, a **per-story** deferral from the spec (a `**Out of scope:**` block
-     under a story's AC block) must NOT appear in `prd.outOfScope` — it is
-     story-scoped, and hoisting it would impose one story's boundary on all of them.
-     Finding it at feature level is a **major**.
+     under a story's AC block) that reaches `prd.outOfScope` is judged **by whether
+     it carries a `US-00N only:` prefix** — hoisting itself is legitimate and the
+     spec-writing guide asks for it, because only the feature-level list is
+     backfilled deterministically:
+     - **Prefixed** (`- US-005 only: gap-through fill realism …`) — **not a
+       finding.** A deliberate, readable story-scoped boundary. `nax plan` copies
+       it onto every story, and the prefix tells the other stories' implementers
+       and the adversarial reviewer which story it governs.
+     - **Unprefixed** — a **major**. Propagation imposes one story's waiver on
+       every story, and the adversarial reviewer can cite it to close a legitimate
+       finding in a story the waiver was never meant to cover. Recommend adding the
+       prefix, not deleting the bullet.
+
+     Judge the prefix, not the hoist. Flagging every hoisted deferral contradicts
+     the authoring guide and produces a false positive on correctly-written specs
+     (real case: a spec with three correctly-prefixed `US-005 only:` /
+     `US-006 only:` bullets, which its reviewer had to accept by judgment).
    - **e. Orphan exclusions.** Entries in `prd.outOfScope` with no spec source are a
      **minor** (usually the planner making an implicit boundary explicit), unless
      one excludes something the spec's ACs actually require — then a **blocker**.
@@ -395,12 +409,15 @@ story's own scope declaration.
 story's `Context Files` that the PRD dropped from `contextFiles` or mis-moved into
 the consumer's `expectedFiles` (the read hint was lost or corrupted; the run still
 proceeds because the file exists at runtime, so it is a major, not a blocker —
-see §4c).
+see §4c); a story-scoped deferral hoisted into `prd.outOfScope` **without** a
+`US-00N only:` prefix (see §6d).
 
 **Not a finding:** an upstream-produced file correctly **kept** in the consumer
 story's `contextFiles` (it exists at that story's runtime because the producer ran
 first). A self-created file absent from `contextFiles` because it is correctly in
-the same story's `expectedFiles` is also not a finding.
+the same story's `expectedFiles` is also not a finding. A story-scoped deferral
+hoisted into `prd.outOfScope` **with** a `US-00N only:` prefix is not a finding
+either — that is the shape the spec-writing guide asks for.
 
 **Output:** writes `prd-fidelity-report.md` in the same directory as `prd.json`
 (e.g. `.nax/features/<feature>/prd-fidelity-report.md` for nax projects),
