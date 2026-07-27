@@ -158,16 +158,20 @@ Checks:
      point and asserts the symbol is NOT invoked again. Its absence is a finding.
    - **Seam-path reality.** Altitude checks that the AC names the *right* entry
      point; this checks that the entry point actually **reaches** the stubbed
-     symbol. Classify every seam AC by whether the stubbed symbol appears in
-     **Phase 1's forward-reference allowlist**:
-     - **Class A — the path is being *created*.** The stubbed symbol is new, so
-       there is nothing in current code to verify against and the spec is the
-       source of truth. No further work; altitude and re-trigger rules apply as
-       above.
-     - **Class B — the path is *asserted* over existing code.** Both the stubbed
-       symbol and the named entry point already exist, so the claimed connection
-       is checkable — and therefore must be checked. Open the entry point and
-       walk it to the callee, reporting the observed chain:
+     symbol. Classify every seam AC by checking **both** of its endpoints — the
+     stubbed symbol *and* the named entry point — against **Phase 1's
+     forward-reference allowlist**:
+     - **Class A — the path is being *created*.** **Either** endpoint is
+       forward-referenced (the spec creates it). There is nothing in current code
+       to verify against and the spec is the source of truth. No further work;
+       altitude and re-trigger rules apply as above. This deliberately covers the
+       common "new route / command wires up an existing service" shape: the
+       stubbed symbol is old but the entry point is new, so the path *cannot*
+       exist yet and its absence is not a defect.
+     - **Class B — the path is *asserted* over existing code.** **Neither**
+       endpoint is forward-referenced — both already exist, so the claimed
+       connection is checkable and therefore must be checked. Open the entry
+       point and walk it to the callee, reporting the observed chain:
 
        ```
        entry (file:line) → … → callee (file:line)
@@ -546,5 +550,5 @@ Do not run on every save during spec drafting.
 ## When phases 7-9 are mandatory
 
 - **Phase 7** runs whenever the spec carries AC mechanism tags (`[unit]` / `[integration]` / `[cli]`), or whenever the host project has adopted the verification-anchor convention. The `[grep]`, `[file]`, and `[verbatim]` tags are **deprecated and banned** — flag every occurrence as a blocker and rewrite the AC into a runtime behaviour (or, for removals, a build/static-gate note).
-- **Phase 8** runs whenever the spec contains removal keywords (`delete|remove|consolidate|retire|rename`), introduces new exported symbols (interfaces, ops, builder methods), **contains any seam AC that stubs an already-existing symbol** (triggers the Class B seam-path reality check — note this condition is independent of the new-symbol one, since a pure extension spec introduces no new exports yet can still assert a false call path), has a story with both additive and destructive ACs, or has any AC that renders/charts/aggregates data from another story's contract (triggers the data-availability seam check).
+- **Phase 8** runs whenever the spec contains removal keywords (`delete|remove|consolidate|retire|rename`), introduces new exported symbols (interfaces, ops, builder methods), **contains any seam AC whose stubbed symbol and named entry point both already exist** (triggers the Class B seam-path reality check — note this condition is independent of the new-symbol one, since a pure extension spec introduces no new exports yet can still assert a false call path), has a story with both additive and destructive ACs, or has any AC that renders/charts/aggregates data from another story's contract (triggers the data-availability seam check).
 - **Phase 9** runs whenever `--prd <path>` is passed. Without `--prd`, phase 9 is skipped silently.
