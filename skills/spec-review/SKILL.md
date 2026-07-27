@@ -120,10 +120,19 @@ Checks:
 6. **Meta-AC backing.** ACs asserting architectural properties (e.g. "only N
    edit points") must be expressible as a runtime test or routed to the
    build/static gate. Aspirational meta-ACs with neither are flagged.
+7. **Locus token present.** Every AC must contain at least one **locus token** —
+   a symbol, file basename, route, command, or error name that a reviewer would
+   have to quote verbatim. An AC naming none is ungroundable in *both*
+   directions: a downstream reviewer cannot cite it precisely, and it cannot
+   reject an off-target finding. See the spec-writing guide's "Use concrete
+   identifiers" rule for the acQuote mechanism this follows from. Flag **major**,
+   not blocker — this is a regression guard rather than a live defect; ACs
+   drafted under the concrete-identifier rule already satisfy it.
 
 **Blocker:** missing/invalid mechanism; `[grep]`/`[file]`/`[verbatim]` tag;
 file-content or shell AC; unpaired new exported symbol with no behavioral seam
 AC; removal/absence encoded as an AC; unbacked meta-AC.
+**Major:** AC with no locus token.
 
 ### Phase 8 — Seam & deletion audit
 
@@ -147,6 +156,46 @@ Checks:
    - **Guarded-seam re-trigger.** If the wiring is guarded (once-per-transition,
      dedup, idempotency), require a second seam AC that re-triggers the entry
      point and asserts the symbol is NOT invoked again. Its absence is a finding.
+   - **Seam-path reality.** Altitude checks that the AC names the *right* entry
+     point; this checks that the entry point actually **reaches** the stubbed
+     symbol. Classify every seam AC by whether the stubbed symbol appears in
+     **Phase 1's forward-reference allowlist**:
+     - **Class A — the path is being *created*.** The stubbed symbol is new, so
+       there is nothing in current code to verify against and the spec is the
+       source of truth. No further work; altitude and re-trigger rules apply as
+       above.
+     - **Class B — the path is *asserted* over existing code.** Both the stubbed
+       symbol and the named entry point already exist, so the claimed connection
+       is checkable — and therefore must be checked. Open the entry point and
+       walk it to the callee, reporting the observed chain:
+
+       ```
+       entry (file:line) → … → callee (file:line)
+       ```
+
+       Report the chain you actually observe rather than a yes/no; if you cannot
+       complete it, say where it stops. Three **blocker** conditions:
+
+       | condition | why it ships broken |
+       |:---|:---|
+       | No path exists from the named entry point to the stubbed symbol | the acceptance test can never go green |
+       | A path exists only behind an enabling flag / config guard the AC does not establish | the test's default fixture takes the short-circuit branch |
+       | The path reaches the symbol but not the **method** the AC names | there is no such call to assert |
+
+       Rationale: this class is invisible to every other phase. Phase 1 confirms
+       both symbols exist, Phase 2 confirms their shapes, Phase 4 scans *prose*
+       for behavioral claims (its patterns are prose-shaped and do not cover an
+       AC asserting an invocation), and altitude confirms the entry point is the
+       outermost one — the false claim lives on the **edge between the two
+       endpoints**, which nothing else inspects. The hole exists because the
+       two-anchor rule was designed for new symbols, where the path is being
+       created; seam ACs over pre-existing paths inherited no reality check.
+       Real cases: an AC asserting `createFlow` invokes the progress lock when
+       only `initializeProgress` / `completeStep` / `skipStep` take it; an AC
+       asserting a store's *read* is invoked on `POST /oauth/token` when the
+       interceptor both short-circuits unless `idempotency.enabled === true` and
+       reserves via `putIfAbsent`, so no read call exists. Both shipped through a
+       clean phases-1–8 review.
 2. **"Replaces X" wiring.** Any "X replaces Y" / "supersedes Y" claim must have
    an AC asserting Y's former callers now invoke X (via a stub/spy on X) — not
    just that X exists.
@@ -189,7 +238,10 @@ Checks:
 
 **Blocker:** missing behavioral seam AC for a new exported symbol; seam AC that
 triggers an intermediate helper below the wiring instead of the named outermost
-entry point (seam-altitude violation); a render / derivation AC that consumes data
+entry point (seam-altitude violation); **Class B seam AC whose named entry point
+does not reach the stubbed symbol, reaches it only behind an enabling flag/guard
+the AC does not establish, or does not reach the specific method the AC names
+(seam-path reality)**; a render / derivation AC that consumes data
 absent from the producer contract's declared fields (data-availability seam);
 removal-keyword match without a build/static-gate verification note (or encoded as
 a file-content AC); mixed additive+destructive story; sizing breach.
@@ -494,5 +546,5 @@ Do not run on every save during spec drafting.
 ## When phases 7-9 are mandatory
 
 - **Phase 7** runs whenever the spec carries AC mechanism tags (`[unit]` / `[integration]` / `[cli]`), or whenever the host project has adopted the verification-anchor convention. The `[grep]`, `[file]`, and `[verbatim]` tags are **deprecated and banned** — flag every occurrence as a blocker and rewrite the AC into a runtime behaviour (or, for removals, a build/static-gate note).
-- **Phase 8** runs whenever the spec contains removal keywords (`delete|remove|consolidate|retire|rename`), introduces new exported symbols (interfaces, ops, builder methods), has a story with both additive and destructive ACs, or has any AC that renders/charts/aggregates data from another story's contract (triggers the data-availability seam check).
+- **Phase 8** runs whenever the spec contains removal keywords (`delete|remove|consolidate|retire|rename`), introduces new exported symbols (interfaces, ops, builder methods), **contains any seam AC that stubs an already-existing symbol** (triggers the Class B seam-path reality check — note this condition is independent of the new-symbol one, since a pure extension spec introduces no new exports yet can still assert a false call path), has a story with both additive and destructive ACs, or has any AC that renders/charts/aggregates data from another story's contract (triggers the data-availability seam check).
 - **Phase 9** runs whenever `--prd <path>` is passed. Without `--prd`, phase 9 is skipped silently.

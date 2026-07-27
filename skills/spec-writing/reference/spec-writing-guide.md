@@ -114,7 +114,7 @@ Every AC must be **behavioral and independently testable**.
 ### Rules
 
 1. **One AC = one assertion.** If an AC has "and" in it, split it.
-2. **Use concrete identifiers.** Function names, return types, error messages, log levels.
+2. **Use concrete identifiers.** Function names, return types, error messages, log levels. This is a convergence control, not a style preference: **AC text is the only surface a downstream reviewer can ground a blocking finding against.** An `error`/`critical` finding is dropped unless its quote is a verbatim substring of the AC it cites *and* contains a locus keyword (a symbol, file basename, route, command, or error name). So a vague AC is a **wide** quote surface — nearly any objection can be grounded against it, and the story loops in adversarial review; a specific one naming a concrete locus is **narrow**, and off-target findings are dropped mechanically. Every AC should carry at least one identifier a reviewer would have to quote verbatim.
 3. **Specify HOW things connect.** "logger forwards to the run's logger" not "logger exists".
 4. **Never list quality gates.** Typecheck, lint, and build are run automatically — don't waste ACs on them.
 5. **Never use vague verbs.** "works correctly", "handles properly", "is valid" are untestable.
