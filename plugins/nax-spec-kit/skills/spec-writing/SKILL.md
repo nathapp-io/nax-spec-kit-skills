@@ -51,6 +51,18 @@ Before Phase 1:
 
    nax rule files are path-scoped via frontmatter (`paths`, `appliesTo`, optional `priority`). For spec-level convention extraction, read all of them; when an AC or design block targets a specific package/path, prefer the rules whose `paths`/`appliesTo` match. Missing both stores is non-fatal — note in the report that project rules were not found and fall back to the guide's defaults.
 
+3. **Read the project's story-size gate.** Load `<repo>/.nax/config.json` and read `precheck.storySizeGate`:
+
+   | key | meaning | fallback when absent |
+   |:---|:---|:---|
+   | `enabled` | whether `nax plan` enforces the gate at all | `true` |
+   | `maxAcCount` | hard cap on ACs per story | `15` |
+   | `maxBulletPoints` | hard cap on description bullets per story | `15` |
+
+   **State the resolved numbers before Phase 4** and size every story against *those*, not against the guide's generic 15 — observed values range from **6** (`rs-calculator`) to **24** (`rs-stock`), so the guide's number is wrong more often than right. If the file or the key is missing, say so and use the fallbacks. If `enabled` is `false`, the gate will not fail the run, but keep sizing to `maxAcCount` anyway — an oversized story is a planning problem before it is a precheck problem.
+
+   **Root config only.** Do **not** read `.nax/mono/<pkg>/config.json` — per-package configs exist to override *commands* (build/test/lint), not sizing policy.
+
 ## Workflow
 
 Phase outputs accumulate into the target spec file. At the end of each phase, the skill writes (or overwrites) `<target-path>` with the sections drafted so far plus an HTML comment marking the last completed phase:
@@ -159,7 +171,7 @@ Estimate AC count and files touched from the intent + design notes. Apply the gu
 > guide § Context Hints.
 
 **Must split** (lower bound enforcement):
-- >15 ACs in one story — **count assertions, not bullets, and use the project's own cap.** `nax plan` atomically splits a compound AC into one AC per assertion, so 13 bullets can plan to 21. Split compound ACs while authoring, then spec count == PRD count. Read `config.precheck.storySizeGate.maxAcCount` from the project's `.nax/config.json` and check against that; 15 is only the fallback. (Acceptance also generates one test per AC, so a compound AC means one test covering several assertions.)
+- More ACs than the `maxAcCount` resolved in Pre-flight step 3 (fallback 15), **counted as assertions, not bullets.** `nax plan` atomically splits a compound AC into one AC per assertion, so 13 bullets can plan to 21 — split them while authoring and the spec count matches the PRD count. Also check description bullets against the resolved `maxBulletPoints`. (See guide § Story Sizing for why.)
 - Context Files list >5 (the read list; `Creates` is counted separately)
 - Story mixes additive ACs ("add X") and destructive ACs ("delete Y", "rename Z", "consolidate W") — split with destruction in a terminal-cleanup story
 - Story has both "add new feature" and "refactor existing code"
