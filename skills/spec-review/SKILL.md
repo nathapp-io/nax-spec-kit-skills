@@ -92,6 +92,20 @@ greps, which are not agent-implementable test cases (see below).
 
 Checks:
 
+> **Tags are an authoring-time device — they do not survive `nax plan`.** Measured
+> corpus-wide: only **331 of 12547 PRD ACs (2.6%)** retain a `[unit]`/`[integration]`/`[cli]`
+> tag; the planner strips ~97% while rewriting. So the tag never reaches the
+> implementer, test-writer, or reviewer.
+>
+> That does **not** make this phase pointless — choosing a tag forces the author to
+> name a mechanism, which is what turns "the symbol exists" into a runtime assertion,
+> and the phase's real value is items 2–7, which police the AC's *prose*. But it does
+> set the priority: **the mechanism must be legible from the AC's wording**, because
+> the wording is all that survives. Prefer "calling `foo()` with X returns Y" (the
+> mechanism is implied and durable) over prose that leans on the tag to say what kind
+> of test it is. When a tag is the only thing distinguishing two readings of an AC,
+> rewrite the AC.
+
 1. **Every AC has a runtime mechanism.** ACs with no tag, an embedded command,
    or a `[grep]`/`[file]`/`[verbatim]` tag are flagged. Each AC must be a real
    runtime test (`[unit]`/`[integration]`/`[cli]`) an implementer can write
@@ -333,6 +347,38 @@ Checks:
 5. **Meta-AC survival.** Spec meta-ACs (architectural invariants) must survive —
    either as a runtime PRD AC or as a build/static-gate verification note. Silent
    deletion is a blocker.
+
+   **5b. Correction survival — `analysis` is not evidence.** Every correction an
+   earlier spec-review round made must reappear in a story's `description` or in an
+   `acceptanceCriteria` entry. **Finding it only in `analysis` does not count.**
+   `analysis` is rendered into **no** run-time prompt (`story.ts` emits only title,
+   `description`, `acceptanceCriteria`, `outOfScope`), so a correction that lives
+   there alone reaches nobody. It is planner commentary, not a delivery channel.
+   Present in 331/337 PRDs corpus-wide and read by nothing.
+
+   Treat `storyPoints` and `tags` the same way — both are inert (1422/1439 stories
+   carry the auto-defaulted `storyPoints: 1`). Never cite any of the three as proof
+   that content survived.
+
+   A correction present *only* in `analysis` is a **major**: the wording is not lost
+   from the artifact, but it is invisible at run time.
+
+   **5c. PRD-AC satisfiability spot-check.** Phase 8's Class B seam-path rule runs
+   against **spec** ACs. `nax plan` atomically splits compound ACs, so a PRD may
+   contain invocation ACs that never existed in the spec and that Phase 8 therefore
+   never saw. For every `prd.json` AC asserting that some entry point invokes a
+   stubbed symbol — where **both** endpoints already exist — re-run the Class B
+   trace (see Phase 8 check 1). Same three blocker conditions: no path; path only
+   behind an enabling flag nothing in the spec establishes; path reaching the symbol
+   but not the named method.
+
+   This is the last gate before `nax run`, and the failure it catches is expensive:
+   an unsatisfiable AC becomes an acceptance test named `AC-N: …` that can never go
+   green. nax's acceptance diagnosis can only return `source_bug`, `test_bug`, or
+   `both` — it has **no verdict meaning "the criterion is wrong"** — so it blames
+   innocent code and burns `rectification.maxAttemptsTotal` (default 12) attempts
+   plus tier escalation before the story blocks, never naming the real cause.
+   Scope: invocation-shaped ACs only, not every AC.
 6. **Out-of-scope preservation (`prd.outOfScope`).** The PRD carries a top-level
    `outOfScope` string array holding the spec's `## Out of Scope` / `## Non-Goals`
    statements. `nax plan` backfills it deterministically, so a *missing* item almost
