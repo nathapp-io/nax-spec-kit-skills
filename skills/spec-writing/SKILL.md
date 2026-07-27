@@ -159,7 +159,7 @@ Estimate AC count and files touched from the intent + design notes. Apply the gu
 > guide § Context Hints.
 
 **Must split** (lower bound enforcement):
-- >15 ACs in one story
+- >15 ACs in one story — **count assertions, not bullets, and use the project's own cap.** `nax plan` atomically splits a compound AC into one AC per assertion, so 13 bullets can plan to 21. Split compound ACs while authoring, then spec count == PRD count. Read `config.precheck.storySizeGate.maxAcCount` from the project's `.nax/config.json` and check against that; 15 is only the fallback. (Acceptance also generates one test per AC, so a compound AC means one test covering several assertions.)
 - Context Files list >5 (the read list; `Creates` is counted separately)
 - Story mixes additive ACs ("add X") and destructive ACs ("delete Y", "rename Z", "consolidate W") — split with destruction in a terminal-cleanup story
 - Story has both "add new feature" and "refactor existing code"
@@ -250,7 +250,7 @@ For each story, draft ACs in two tracks:
 
 After drafting:
 
-1. Verify every AC has a runtime verification mechanism tag (`[unit]` / `[integration]` / `[cli]`). The legacy `[grep]`, `[file]`, and `[verbatim]` tags are **banned** — they describe file-content greps, which are not agent-implementable test cases (see "Why" below).
+1. Verify every AC has a runtime verification mechanism tag (`[unit]` / `[integration]` / `[cli]`). The legacy `[grep]`, `[file]`, and `[verbatim]` tags are **banned** — they describe file-content greps, which are not agent-implementable test cases (see "Why" below). **Note the tag is authoring-time only:** `nax plan` strips it from ~97% of ACs (331/12547 retain one corpus-wide), so nothing downstream reads it. Its job is to force *you* to name a mechanism. Because only the prose survives, **the mechanism must be legible from the AC's wording itself** — if the tag is the only thing telling a reader what kind of test this is, rewrite the AC.
 2. Verify every AC is a behaviour an implementer can write as a fail-first test — no "file X contains Y" / "file X matches regex Z" / "file X does not contain Y" assertions.
 3. Verify the AC contains **zero shell commands** (no `grep`, `wc`, `find`, `awk`, `sed`, `|`, `$(...)`).
 4. Verify the two-anchor rule on every new exported symbol (behavioral seam AC present).
