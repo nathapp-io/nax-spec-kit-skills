@@ -235,6 +235,8 @@ For each story, draft ACs in two tracks:
 
   Match is on the story's *subject matter* (title, design touchpoints, symbols), not incidental word use. The out-of-scope route is legitimate and cheap — the point is that the spec, not a downstream reviewer, decides the story's scope boundary.
 
+- **Prefix every hoisted deferral with `US-00N only:`** (guide § per-story deferrals). Keep the story-local `**Out of scope:**` block, and when a deferred property is one an adversarial reviewer would plausibly block on, *also* add a feature-level `## Out of Scope` bullet — because only the feature-level list is backfilled deterministically. That hoisted bullet **must** carry the `US-00N only:` prefix: `nax plan` copies the feature-level list onto every story, so an unprefixed hoist imposes one story's waiver on all of them and lets the reviewer close legitimate findings elsewhere. Unprefixed hoists are flagged by spec-review; prefixed ones are accepted as intentional. A deferral that genuinely applies feature-wide takes no prefix.
+
 **Track B — Verification anchoring.** This is not a second list of ACs — it is the rule that every Track A AC must itself *be* the executable anchor (a real runtime test the implementer writes fail-first, then makes pass), plus the extra anchors (seam ACs, gate notes) below. Translate each mechanical claim into the behaviour that proves it:
 
 - **Symbol exists / is usable** → don't assert the source text contains the name; assert you can *use* it. "Importing/referencing `Symbol` from `<module>` succeeds and `Symbol` is usable as a `<class|struct|function|type>`" — a `[unit]` test that imports and exercises it. (Pasting the name into a comment passes a grep; it fails an import-and-use test.)
