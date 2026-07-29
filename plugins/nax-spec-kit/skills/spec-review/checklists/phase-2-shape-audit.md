@@ -113,3 +113,21 @@ When the spec proposes adding fields to an existing schema, verify:
 - `kind: "complete"` when single-turn LLM ops in the codebase are all `kind: "run"`
 - Field used in ACs but absent from the interface definition (`revisionFindings`)
 - Wrong schema file location (proposes editing `schemas.ts` when the type lives in `schemas-infra.ts`)
+
+## Hand-off to Phase 8 — unsourced identifiers
+
+Phase 2 falsifies the claims a spec **makes**. It cannot see the inputs a spec
+**omits to source**, because an omission asserts nothing to check.
+
+So while grounding a formula, note every identifier in it that carries no
+`file:line` and is not defined by the surrounding prose — a bare `threshold`,
+`config`, `limit`, `mode` sitting beside symbols that are all fully cited. Do not
+resolve these here; hand them to Phase 8's data-availability seam, which asks
+whether the value is reachable **at the site the spec requires it**.
+
+This hand-off exists because the reverse has happened: a spec-review pass
+correctly replaced a hallucinated enum with the real one, cited it by `file:line`,
+and in the same rewritten sentence introduced a predicate call taking a bare
+`threshold` argument that nothing supplied — turning a Phase 2 fix into a Phase 8
+defect. Grounding the symbols you cite does not ground the values you assume, and
+a rewrite is exactly when an unsourced one slips in.
