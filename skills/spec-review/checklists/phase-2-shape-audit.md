@@ -120,8 +120,26 @@ member — are findings:
 | Exact count | `assert len(fields) == 15`, `expect(keys).toHaveLength(15)` | closed |
 | Golden / snapshot | `toMatchSnapshot()`, checked-in `*.golden`, approved JSON | closed |
 | Exhaustive case list | test asserting a switch/match handles exactly N variants | closed |
+| Loop over **actual** members | `for col in table.columns: assert expected[col.name] ...` | closed |
 | Membership / superset | `assert "id" in cols`, `expect(obj).toMatchObject({...})` | open — ignore |
-| Per-member assertion | `assert cols["id"].type is Integer` | open — ignore |
+| Loop over **expected** members | `for name, t in expected.items(): assert cols[name] ...` | open — ignore |
+
+**The two loop rows are the same test with its iteration order swapped, and only
+one of them is safe.** A loop driven by the *actual* member set looks per-member —
+it asserts one property of one member at a time, never a total — but indexing the
+expected map with a member the map has never heard of fails on the first addition.
+It is closed-world with the closure hidden in a lookup.
+
+That also changes what you grep for: this variant does not fail as an assertion
+diff, it fails as a `KeyError` / `undefined` / missing-key panic, so scanning for
+`assert ... ==` will not surface it. Read the loop header — *what does it iterate?*
+— rather than the assertion inside the body.
+
+Expect to find it **behind** an exact-set assertion in the same test, since a test
+that pins the member set usually goes on to check each member's type. Fixing only
+the obvious assertion turns one red test into the same red test with a different
+error, and a reviewer who stopped at the first finding will have reported the story
+as unblocked when it is not. Sweep the whole test body before closing the finding.
 
 A closed-world hit is a **blocker** unless the spec **authorises the implementer to
 edit that test file** — an AC covering the update, or a `Modifies` / `Context Files`
@@ -152,8 +170,10 @@ contracts, so this is unreachable by retry, escalation, or a more capable model.
    test file under that story's `Modifies` / `Context Files` so the implementer is
    permitted to touch it.
 2. Relax the assertion to open-world in a preparatory story ordered before the
-   mutation — a superset check plus per-member assertions preserves the original
-   intent without the trap.
+   mutation — a superset check plus a loop over the *expected* members preserves
+   the original intent without the trap. Name both rewrites in the AC; an AC that
+   says only "relax the column-set assertion" leaves the type loop behind it
+   untouched and the gate still red.
 3. Reorder so the story that owns the pinning test retires or rewrites it before the
    mutating story runs. Only this and option 1 actually clear the gate.
 
@@ -209,6 +229,7 @@ so unprompted — the story deadlocks with a correct implementation.
 - Field used in ACs but absent from the interface definition (`revisionFindings`)
 - Wrong schema file location (proposes editing `schemas.ts` when the type lives in `schemas-infra.ts`)
 - An earlier feature's test asserting set-equality over a table's columns while this spec adds two of them — correct implementation, unfixable full-suite gate, terminal `agent-gave-up` (Step 7)
+- A per-member type loop iterating the *actual* columns and indexing an expected map, hiding behind that set-equality assertion in the same test — relaxing only the obvious one re-fails the story on a `KeyError` (Step 7)
 
 ## Hand-off to Phase 8 — unsourced identifiers
 
