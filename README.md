@@ -5,7 +5,7 @@ A Claude Code plugin bundling two complementary skills for spec-driven developme
 | Skill | Purpose |
 |:------|:--------|
 | **spec-writing** | Convert brainstorming output into a guide-conformant `SPEC-*.md`. Enforces sizing, behavioral (executable) verification anchors, seams, and terminal-cleanup isolation. |
-| **spec-review** | Systematically audit an implementation spec against the actual codebase before handing it to implementers. Catches API hallucination, PRD↔code contradictions, convention violations, behavioral drift, sizing breaches, and stale references. |
+| **spec-review** | Systematically audit an implementation spec against the actual codebase before handing it to implementers. Catches API hallucination, PRD↔code contradictions, existing-test contract collisions, convention violations, behavioral drift, sizing breaches, and stale references. |
 
 They form a workflow pair:
 

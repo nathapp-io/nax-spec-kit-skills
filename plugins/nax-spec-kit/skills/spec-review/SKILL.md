@@ -1,6 +1,6 @@
 ---
 name: spec-review
-description: Use this skill to systematically review an implementation spec against the actual codebase before handing it off to implementers. Catches API hallucination (named symbols that don't exist), PRD↔code contradictions (proposed shapes incompatible with real schemas/types), convention violations (forbidden patterns, wrong file locations, unknown session roles), behavioral semantic drift (spec prose vs actual code behavior), sizing breaches (AC caps), out-of-scope sections written in a shape `nax plan` cannot extract, stale references from earlier revisions, and (when --prd is passed) spec-to-PRD fidelity loss after `nax plan` (including dropped out-of-scope statements). Invoke when the user asks to "review this spec", "check this spec against the codebase", "audit this spec for hallucination", "audit the PRD against the spec", or `/spec-review <path>`. Project-agnostic — loads `.nax/rules/` (nax-native, higher priority) and `.claude/rules/` dynamically.
+description: Use this skill to systematically review an implementation spec against the actual codebase before handing it off to implementers. Catches API hallucination (named symbols that don't exist), PRD↔code contradictions (proposed shapes incompatible with real schemas/types), existing-test contract collisions (a closed-world assertion an unrelated story's shape change necessarily breaks, deadlocking the run), convention violations (forbidden patterns, wrong file locations, unknown session roles), behavioral semantic drift (spec prose vs actual code behavior), sizing breaches (AC caps), out-of-scope sections written in a shape `nax plan` cannot extract, stale references from earlier revisions, and (when --prd is passed) spec-to-PRD fidelity loss after `nax plan` (including dropped out-of-scope statements). Invoke when the user asks to "review this spec", "check this spec against the codebase", "audit this spec for hallucination", "audit the PRD against the spec", or `/spec-review <path>`. Project-agnostic — loads `.nax/rules/` (nax-native, higher priority) and `.claude/rules/` dynamically.
 ---
 
 # Spec Review Skill
@@ -44,9 +44,9 @@ Extract every named symbol (file path, function, type, constant, config key) the
 
 See [checklists/phase-2-shape-audit.md](checklists/phase-2-shape-audit.md).
 
-For every claim of the form "X has field Y" or "X(args) returns Z", open the actual source and compare. Includes interface field membership, function signatures, default values, enum members.
+For every claim of the form "X has field Y" or "X(args) returns Z", open the actual source and compare. Includes interface field membership, function signatures, default values, enum members. Also runs the inverse check — **existing-test contract collision**: when the spec mutates a shape that already exists (a table column, enum member, registry entry, payload key, signature parameter), sweep the test tree for *closed-world* assertions over that shape — set equality, exact object equality, exact counts, snapshots, exhaustive case lists. Any such assertion breaks the moment the member is added, and test-authorship isolation bars the implementer from editing a test its story does not own, so the story deadlocks with a correct implementation and gives up.
 
-**Blocker:** any structural claim contradicted by code (e.g. spec proposes per-AC `verifiedBy` but `acceptanceCriteria: string[]`).
+**Blocker:** any structural claim contradicted by code (e.g. spec proposes per-AC `verifiedBy` but `acceptanceCriteria: string[]`); any closed-world assertion over a shape the spec mutates, where no AC and no `Modifies` entry authorises the implementer to update that test (an out-of-scope deferral does not clear it — the gate still fails).
 **Output:** a list of corrections the spec needs.
 
 ### Phase 3 — Convention audit
