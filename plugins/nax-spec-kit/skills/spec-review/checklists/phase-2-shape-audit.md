@@ -239,7 +239,7 @@ Phase 2 falsifies the claims a spec **makes**. It cannot see the inputs a spec
 So while grounding a formula, note every identifier in it that carries no
 `file:line` and is not defined by the surrounding prose — a bare `threshold`,
 `config`, `limit`, `mode` sitting beside symbols that are all fully cited. Do not
-resolve these here; hand them to Phase 8's data-availability seam, which asks
+resolve these here; hand them to Phase 8's contract-seam check, which asks
 whether the value is reachable **at the site the spec requires it**.
 
 This hand-off exists because the reverse has happened: a spec-review pass

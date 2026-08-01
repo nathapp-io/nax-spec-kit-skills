@@ -88,121 +88,86 @@ Checks:
 5. **Sizing+.** Re-run the spec-writing hard splitting rules — Context Files >5
    or AC count >15 in a single story is a blocker, regardless of `maxAcCount`.
    The "single story with sub-deliverables" framing is rejected.
-6. **Data-availability seam (every input a derivation needs ↔ what the site can
-   reach).** For every AC — and every `Interface` formula an AC rests on — that
-   *derives a value* at a named code site (renders, charts, plots, aggregates,
-   counts, filters, ratios, threshold-gated totals), enumerate **every input the
-   derivation needs** and trace each one to a source that is **in scope at that
-   site**. A source qualifies only if it is a declared field of a contract the
+6. **Contract seams (what crosses a producer/consumer boundary).** For every AC —
+   and every `Interface` formula an AC rests on — that either *derives a value* at
+   a named site (renders, charts, aggregates, counts, filters, ratios,
+   threshold-gated totals) or *submits a payload* across a boundary it does not
+   own (HTTP body/query, event or queue message, RPC args, subprocess argv, a file
+   another component parses), reconcile it against the other side's declared
+   contract. A source qualifies only if it is a declared field of a contract the
    site holds, a parameter the site receives, or something the spec explicitly
-   routes there. The producer may be **another story's contract, a contract new
-   in this same spec, or existing code** — all three are in scope for this check.
+   routes there. The other side may be another story's contract, one new in this
+   same spec, or existing code — all three are in scope.
 
-   Two distinct failure shapes, both blockers:
+   Three failure shapes, all blockers:
 
-   - **Missing output field** — the derivation names a datum the producer never
-     emits. A **distribution / histogram** chart over a contract exposing only
-     summary percentiles (no samples, bins, or raw series); a **time-series /
-     bands / equity-curve** chart over per-bucket scalar summaries (no per-step
-     series); any derived field (`producer.foo`) absent from the producer's
-     declared shape.
-   - **Unsourced input** — the derivation needs a *parameter, threshold, config
-     value, or flag* that the site cannot reach. The tell is an **identifier used
-     in a formula with no stated provenance**: every other symbol in the sentence
-     carries a `file:line`, and this one is bare. Ask of each such identifier:
-     *what supplies it, at this site?* If the spec does not answer, that is the
-     blocker — the implementer will invent a source, and the invented one usually
-     does not exist. The commonest shape: an AC says a value is computed *"at the
-     configured `X`"* while the configured `X` is carried on the producer's
-     **input** type and never on its **output**, so the site that must emit the
-     derived value cannot see it. The implementer reads `X` off the output object,
-     the field is absent, the read silently yields the language's empty value, and
-     every result is computed against a default instead of the configured setting
-     — a wrong answer that still type-checks and still passes the AC's own test.
+   - **Missing output field** (read direction) — the derivation names a datum the
+     producer never emits. A **distribution / histogram** chart over a contract
+     exposing only summary percentiles (no samples, bins, or raw series); a
+     **time-series / bands / equity-curve** chart over per-bucket scalar summaries
+     (no per-step series); any `producer.foo` absent from the producer's declared
+     shape.
+   - **Unsourced input** (read direction) — the derivation needs a *parameter,
+     threshold, config value, or flag* the site cannot reach. The tell is an
+     **identifier used in a formula with no stated provenance**: every other symbol
+     in the sentence carries a `file:line`, this one is bare. Ask *what supplies it,
+     at this site?* — if the spec does not answer, the implementer invents a source
+     and the invented one usually does not exist. Commonest shape: an AC computes
+     a value *"at the configured `X`"* while `X` is carried on the producer's
+     **input** type and never on its **output**, so the emitting site cannot see it.
+     The read silently yields the language's empty value and every result is
+     computed against a default instead of the configured setting.
+   - **Wrong request shape** (write direction) — the payload's field names or
+     **container shape** (object keyed by name vs array of entries vs scalar) do
+     not match the producer's declared *input* contract. The tell is an AC stating
+     the payload in the consumer's own vocabulary — *reflects / corresponds to /
+     matches / derived from* some UI or domain structure — leaving the wire shape
+     unstated. "Calls `submitSweep` with `param_grid` reflecting the entered grid
+     rows" is satisfied by any encoding of "the entered rows": an array of
+     `{key, values}` is a faithful rendering of a one-row-per-parameter form, and
+     the endpoint declares `param_grid: dict[str, list[Any]]`. Both readings are
+     reasonable; only one is accepted at runtime.
+
+   **All three survive the gates the spec asks for.** Each often passes its own
+   `[unit]` test — the element is present, the count is a number of the right type,
+   the assertion is on *what the consumer sent* against a stub that accepts
+   anything — while being substantively wrong. The read-direction modes then either
+   **deadlock** the story (review keeps re-raising the AC's literal noun) or ship a
+   **silently wrong value**; the write-direction mode type-checks on both sides
+   independently and fails only when a real request crosses the boundary.
 
    **This does not duplicate Phase 2.** Phase 2 falsifies claims the spec *makes*
-   ("X has field Y") against existing source. This check catches inputs the spec
-   *omits to source* — an absence, which no claim-checker can see. It is also the
-   only phase that reconciles two contracts both forward-referenced in the same
-   spec, where Phase 2 has nothing to diff against.
+   against existing source. Here the claim is *absent* (an unsourced input) or
+   *true but under-specified* (a payload that "reflects" the rows) — neither is a
+   false claim a checker can catch. This is also the only phase that reconciles two
+   contracts both forward-referenced in the same spec, where Phase 2 has nothing to
+   diff against.
 
-   Resolution is **enrich the producer** (add a story/AC emitting the required
-   samples/series, or carry the parameter on the output type), **route the input
-   explicitly** (name the context slice / argument that delivers it — the same
-   treatment the spec already gives its other unreachable values), or **descope
-   the consumer AC** to what exists — naming the real datum ("renders a p5/p50/p95
-   percentile strip") instead of a data-rich chart type ("renders the distribution
-   histogram"). Rationale: the implementer cannot fabricate a missing input, so
-   the AC ships an honest-but-non-conforming result. It then fails one of two ways:
-   the story **deadlocks** in semantic/adversarial review, which reads the AC's
-   literal noun and keeps re-raising it (the missing-output-field mode); or — worse
-   — it **passes with a silently wrong value**, because a computed scalar looks
-   well-formed and reviewers flag it, if at all, only as a low-severity advisory
-   (the unsourced-input mode). Note the trap common to both: such an AC often
-   passes its own `[unit]` test — a `data-testid` element is present, a count is a
-   number of the right type — while being substantively wrong.
+   **Resolution:** enrich the producer (emit the required series, or carry the
+   parameter on the output type); route the input explicitly (name the context
+   slice / argument that delivers it); descope the consumer AC to what exists —
+   name the real datum ("a p5/p50/p95 percentile strip"), not the data-rich noun
+   ("the distribution histogram"); or, for payloads, **name the wire shape**
+   (`{"period": [14, 21]}`) rather than the structure it was derived from, or
+   assert against the producer's real validator instead of a stub.
 
-   **Scope bound — do not flag on:** identifiers that are illustrative pseudocode
-   rather than a required input; locals the derivation itself computes; values any
-   sibling AC or the spec's design already routes to that site. Flag only when the
-   AC genuinely needs the input and *nothing in the spec* says where it comes from.
-
-7. **Request-shape seam (what the consumer *sends* ↔ what the producer *accepts*).**
-   Check 6 runs one direction: the consumer reading a producer's output. This is the
-   other direction. For every AC where a site **submits** a payload across a boundary
-   it does not own — HTTP request body or query params, event/queue message, RPC
-   arguments, subprocess argv, a written file another component parses — reconcile
-   each field it sends against the producer's declared **input** contract: field
-   name, **container shape** (object keyed by name vs array of entries vs scalar),
-   element type, and required-vs-optional.
-
-   **The tell is an AC that describes the payload in the consumer's own vocabulary
-   rather than the producer's wire shape.** "Calls `submitSweep` with `param_grid`
-   reflecting the entered grid rows" is satisfied by *any* encoding of "the entered
-   rows" — an array of `{key, values}` objects reads as a faithful rendering of a
-   form with one row per parameter, while the endpoint declares
-   `param_grid: dict[str, list[Any]]`. Both are reasonable readings of the sentence;
-   only one is accepted at runtime. Whenever an AC says a payload *reflects*,
-   *corresponds to*, *matches*, or *is derived from* some UI or domain structure,
-   the wire shape is unstated and this check applies.
-
-   **Why the consumer's own test cannot catch it.** In the read direction the
-   consumer is missing data and something visibly breaks. Here the consumer is
-   internally consistent — it asserts on *what it sent*, against a **stub or mock of
-   the producer that accepts anything**. The AC goes green, the type-checker is
-   satisfied on both sides independently, and the mismatch surfaces only when a real
-   request crosses the boundary. That is why this is a spec-time check: no test the
-   spec asks for will find it.
-
-   **This does not duplicate Phase 2.** Phase 2 falsifies claims the spec *makes*.
-   The claim here ("calls `submitSweep` with `param_grid` reflecting the rows") is
-   *true* — the defect is in an encoding the spec never states, so there is no false
-   claim to falsify.
-
-   Resolution is to **name the wire shape in the AC** — spell the literal payload
-   (`param_grid` is an object keyed by parameter name, e.g. `{"period": [14, 21]}`),
-   not the structure it was derived from — or to **assert against the producer's real
-   validator** rather than a stub, so the boundary is exercised once for real.
-
-   **Scope bound — do not flag on:** boundaries where a single type-checker spans
-   both sides (same package, shared imported type, generated client whose types come
-   from the producer's schema) — the compiler already enforces it; illustrative
-   example payloads; fields the producer declares optional. Flag only where the
-   payload is **re-encoded** at the boundary — JSON/HTTP, an event bus, a queue, a
-   subprocess, a file — and consumer and producer are checked independently. Language
-   boundaries (TS front end → Python or Go service) are the highest-yield case,
-   because nothing but the spec constrains the two shapes to agree.
+   **Scope bound — do not flag on:** illustrative pseudocode or example payloads;
+   locals the derivation computes itself; values a sibling AC or the spec's design
+   already routes to the site; fields the producer declares optional; and — for the
+   write direction — any boundary a single type-checker spans (same package, shared
+   imported type, generated client typed from the producer's schema), where the
+   compiler already enforces agreement. Flag the write direction only where the
+   payload is **re-encoded** (JSON/HTTP, event bus, queue, subprocess, file) and
+   each side is checked independently; cross-language boundaries are the
+   highest-yield case.
 
 **Blocker:** missing behavioral seam AC for a new exported symbol; seam AC that
 triggers an intermediate helper below the wiring instead of the named outermost
 entry point (seam-altitude violation); **Class B seam AC whose named entry point
 does not reach the stubbed symbol, reaches it only behind an enabling flag/guard
 **nothing in the spec establishes**, or does not reach the specific method the AC
-names (seam-path reality)**; a derivation AC that consumes data absent from the
-producer contract's declared fields, **or that needs an input with no source in
-scope at the site** (data-availability seam); **an AC that submits a payload across
-a re-encoded boundary whose container shape or field names do not match the
-producer's declared input contract, or that states the payload only as "reflecting"
-some UI/domain structure without naming the wire shape** (request-shape seam);
+names (seam-path reality)**; **any contract-seam failure — a derivation
+consuming a field the producer never emits, an input with no source in scope at
+the site, or a payload whose shape does not match the producer's declared input**;
 removal-keyword match without a build/static-gate verification note (or encoded as
 a file-content AC); mixed additive+destructive story; sizing breach.
