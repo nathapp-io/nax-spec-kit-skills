@@ -48,66 +48,47 @@ in this section, in this shape, does not reach it.
 | Keep it to **25 items or fewer** | The cap keeps exactly 25 and is document-wide (all sections plus inline markers combined); anything past that is truncated, and it is a signal the feature is too large |
 | **Never phrase an exclusion as an acceptance criterion** | It describes work NOT to do; an AC is work to verify |
 
-Safely ignored, so you do not have to work around them: fenced code blocks inside the
-section (a spec that documents markdown by example will not inject a fake exclusion),
-a `None.` / `N/A` placeholder, and a trailing-colon lead-in above a list ("The
-following are deferred:").
+Safely ignored, so do not work around them: fenced code blocks inside the section, a
+`None.` / `N/A` placeholder, and a trailing-colon lead-in above a list. **Not**
+recognised: prose that merely mentions being out of scope ("diff rendering is out of
+scope here") — it must be a section or a bold lead-in.
 
-Two inline-marker forms work: text on the same line as the marker, and a bare
-`**Out of scope:**` on its own line with a bullet list beneath it (each bullet becomes
-an entry). Do **not** put `*`/`_` emphasis inside the marker itself —
-`**Out of scope (see *note*):**` is not recognised and the whole declaration is lost.
+Two inline-marker forms work: text on the marker's line, and a bare `**Out of scope:**`
+on its own line with bullets beneath. Do **not** put `*`/`_` emphasis inside the marker
+— `**Out of scope (see *note*):**` is unrecognised and the whole declaration is lost.
 
-Prose that merely *mentions* being out of scope ("diff rendering is out of scope here
-because nothing persists it") is **not** recognised — it must be a section or a bold
-lead-in.
-
-One more trap: `None.` / `N/A` / `TBD` are filtered as "nothing deferred", but a
-sentence like `Nothing is deferred.` is not — it becomes a real entry and is rendered
-to every implementer as a hard boundary. Write a bare `None.`
+One trap: `None.` / `N/A` / `TBD` are filtered as "nothing deferred", but
+`Nothing is deferred.` is not — it becomes a real entry rendered to every implementer as
+a hard boundary. Write a bare `None.`
 
 **Feature-level vs story-level — where you put it decides what it means.**
 
-`nax plan` treats a declaration as **feature-level** (extracted into `prd.outOfScope`
-and copied onto *every* story) only when it is:
+`nax plan` extracts a declaration into `prd.outOfScope` (and copies it onto *every*
+story) only when it is a top-level `## Out of Scope` section — anywhere in the document
+— or an inline `**Out of scope (deferred):** …` lead-in appearing **before** the first
+`## Stories` / `## Acceptance Criteria` heading. A bold lead-in *after* the story
+sections begin reaches no story at all.
 
-- a top-level `## Out of Scope` section — anywhere in the document, including after
-  the story sections; or
-- an inline `**Out of scope (deferred):** …` lead-in appearing **before** the first
-  `## Stories` / `## Acceptance Criteria` heading (i.e. in Summary or Design).
+A `**Out of scope:**` block under a story's AC block is **story-scoped** and deliberately
+not extracted — hoisting it would tell US-001's implementer that US-002's deferred work
+is a hard boundary. But know the cost: nothing deterministic carries a story-local block
+into `prd.json`. The planner is *asked* to fill the story's `outOfScope` and usually
+does, but there is no backfill, and the adversarial reviewer only ever sees
+`story.outOfScope`. If the planner omits it, the property you thought you deferred is
+silent again — the exact condition Rule 10 exists to prevent.
 
-A `**Out of scope:**` block under a story's AC block — the Rule 10 risk-property
-deferral — is **story-scoped** and deliberately *not* extracted. Hoisting it would
-tell US-001's implementer that US-002's deferred work is a hard boundary.
+So for a risk property you are deferring: keep the story-local block (spec-review Phase 4
+reads it), and **if an adversarial reviewer would plausibly block on the property, also
+add a feature-level bullet naming the story** — `- US-002 only: write-back atomicity is
+deferred to arc 3`. That path is guaranteed.
 
-**But know what that costs.** Nothing deterministic carries a story-local block into
-`prd.json`. The planner is *asked* to fill the story's `outOfScope` field, and it
-usually does — but unlike the feature-level list there is no backfill, so it is not
-guaranteed. The adversarial reviewer only ever sees `story.outOfScope`. If the
-planner omits it, the property you thought you deferred is silent again — the exact
-condition Rule 10 exists to prevent.
-
-So, for a risk property you are deferring:
-
-- Keep the story-local `**Out of scope:**` block — spec-review Phase 4 reads it, and
-  it is what a human reviewer looks for.
-- **If the property is one an adversarial reviewer would plausibly block on, also add
-  a feature-level bullet naming the story**: `- US-002 only: finalize write-back
-  atomicity is deferred to arc 3`. That path is guaranteed, and the story prefix
-  keeps the boundary readable for the other stories' implementers.
-
-  **The `US-00N only:` prefix is mandatory on every hoisted bullet, not a
-  formatting nicety.** `nax plan` denormalises the feature-level list onto *every*
-  story, so an unprefixed hoist silently imposes one story's waiver on all of them
-  — and the adversarial reviewer can cite it to close a legitimate finding in a
-  story the waiver was never meant to cover. The prefix is the only thing
-  distinguishing a deliberate story-scoped boundary from an over-broad one, and
-  spec-review keys on it: prefixed hoists are accepted as intentional, unprefixed
-  ones are flagged. If a deferral genuinely applies to the whole feature, write it
-  without a prefix — that is a different (and fine) statement.
-
-Never use a bold lead-in *after* the story sections begin and expect it to reach
-every story — it reaches none.
+**The `US-00N only:` prefix is mandatory on every hoisted bullet, not a formatting
+nicety.** The feature-level list is denormalised onto *every* story, so an unprefixed
+hoist silently imposes one story's waiver on all of them — and the adversarial reviewer
+can cite it to close a legitimate finding in a story the waiver never covered.
+spec-review keys on the prefix: prefixed hoists are accepted, unprefixed ones flagged. A
+deferral that genuinely applies feature-wide is written without a prefix — a different,
+and fine, statement.
 
 ## Acceptance Criteria Format
 

@@ -124,45 +124,37 @@ member — are findings:
 | Membership / superset | `assert "id" in cols`, `expect(obj).toMatchObject({...})` | open — ignore |
 | Loop over **expected** members | `for name, t in expected.items(): assert cols[name] ...` | open — ignore |
 
-**The two loop rows are the same test with its iteration order swapped, and only
-one of them is safe.** A loop driven by the *actual* member set looks per-member —
-it asserts one property of one member at a time, never a total — but indexing the
-expected map with a member the map has never heard of fails on the first addition.
-It is closed-world with the closure hidden in a lookup.
+**The two loop rows are the same test with its iteration order swapped, and only one
+is safe.** A loop driven by the *actual* member set looks per-member — one property of
+one member at a time, never a total — but indexing the expected map with a member it has
+never heard of fails on the first addition. It is closed-world with the closure hidden in
+a lookup, so it fails as a `KeyError` / `undefined` / missing-key panic, not an assertion
+diff: grepping `assert ... ==` will not surface it. Read the loop header — *what does it
+iterate?* — not the assertion in the body.
 
-That also changes what you grep for: this variant does not fail as an assertion
-diff, it fails as a `KeyError` / `undefined` / missing-key panic, so scanning for
-`assert ... ==` will not surface it. Read the loop header — *what does it iterate?*
-— rather than the assertion inside the body.
+Expect it **behind** an exact-set assertion in the same test, since a test that pins the
+member set usually goes on to check each member's type. Fixing only the obvious
+assertion turns one red test into the same red test with a different error, so sweep the
+whole test body before closing the finding.
 
-Expect to find it **behind** an exact-set assertion in the same test, since a test
-that pins the member set usually goes on to check each member's type. Fixing only
-the obvious assertion turns one red test into the same red test with a different
-error, and a reviewer who stopped at the first finding will have reported the story
-as unblocked when it is not. Sweep the whole test body before closing the finding.
+A closed-world hit is a **blocker** unless the spec **authorises the implementer to edit
+that test file** — an AC covering the update, or a `Modifies` / `Context Files` entry
+naming it. Authorisation is the bar because permission is what the implementer lacks;
+anything short of it leaves the gate red with no legal move.
 
-A closed-world hit is a **blocker** unless the spec **authorises the implementer to
-edit that test file** — an AC covering the update, or a `Modifies` / `Context Files`
-entry naming the file. Authorisation is the bar because permission is what the
-implementer lacks; anything short of it leaves the gate red with no legal move.
+An `## Out of Scope` line does **not** clear it: deferring the test update does not stop
+the assertion failing, it only makes the failure expected. Downgrade to **major** solely
+when the spec also establishes the collision cannot fire during the run — the mutation is
+inert at test time (behind a flag the run never sets), or an earlier in-scope story
+deletes or rewrites the pinning test. Otherwise the deferral is a documented deadlock.
 
-An `## Out of Scope` line does **not** clear this finding. Deferring the test update
-does not stop the assertion from failing — it only makes the failure expected rather
-than a surprise. Downgrade to **major** solely when the spec also establishes that
-the collision cannot fire during the run: the mutation is inert at test time (behind
-a flag the run never sets), or an in-scope story ordered earlier deletes or rewrites
-the pinning test. Otherwise the deferral is a documented deadlock, not a resolution.
-
-**Why blocker, not minor.** The implementation will be *correct* and the story will
-still fail terminally. The full-suite gate runs the entire existing suite, and
-test-authorship isolation — `tdd.testWriterAllowedPaths`,
-`autofix.enforceTestWriterIsolation`, or the equivalent in any harness that
-separates test authorship from implementation — bars the implementer and the
-rectifier from editing a test file the story does not own. The rectifier's only
-remaining moves are to revert its own correct work or to stop; observed behaviour is
-`agent-gave-up` after exhausting every escalation tier, with the story's correct
-implementation already committed. No implementation-only change can satisfy both
-contracts, so this is unreachable by retry, escalation, or a more capable model.
+**Why blocker, not minor.** The implementation will be *correct* and the story will still
+fail terminally: the full-suite gate runs the whole existing suite, and test-authorship
+isolation (`tdd.testWriterAllowedPaths`, `autofix.enforceTestWriterIsolation`, or any
+harness equivalent) bars implementer and rectifier from editing a test the story does not
+own. The rectifier can only revert its own correct work or stop — observed behaviour is
+`agent-gave-up` after exhausting every escalation tier. No implementation-only change
+satisfies both contracts, so retry, escalation, and a stronger model all fail alike.
 
 **Recommended fix** — one of, in preference order:
 
