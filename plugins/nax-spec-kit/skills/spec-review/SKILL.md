@@ -18,7 +18,7 @@ A nine-phase audit that grounds an implementation spec in the actual codebase be
 ## When NOT to Activate
 
 - Spec is in active drafting (not yet stable) — review wastes effort
-- Spec is for greenfield code with no existing codebase to ground against — Phase 1/2/3 produce noise (but Phase 8's data-availability seam still applies: it reconciles the spec's *own* new producer/consumer contracts against each other, not against code)
+- Spec is for greenfield code with no existing codebase to ground against — Phase 1/2/3 produce noise (but Phase 8's contract-seam check still applies: it reconciles the spec's *own* new producer/consumer contracts against each other, not against code)
 - The request is "is this design good?" — that's a design review, use `architect` or `code-reviewer` instead. This skill checks internal consistency and grounding, not architecture quality.
 
 ## Inputs
@@ -96,7 +96,7 @@ Classify every AC's verification mechanism. Only **runtime** tags are valid — 
 
 See [checklists/phase-8-seam-deletion-audit.md](checklists/phase-8-seam-deletion-audit.md).
 
-Walks Design and Stories for producer/consumer seams and removal patterns. Every new exported symbol needs a behavioural seam AC triggered at the **outermost production entry point** (seam altitude), guarded wiring needs a re-trigger AC, and a seam AC whose two endpoints **both already exist** must have its claimed call path verified against current code (**seam-path reality**, Class A/B). Also covers "replaces X" wiring, the removal-keyword sweep, deletion isolation, sizing, and the data-availability seam — every input a derivation needs must have a source in scope at the site, covering both a missing producer field and an **unsourced parameter/threshold/config value**.
+Walks Design and Stories for producer/consumer seams and removal patterns. Every new exported symbol needs a behavioural seam AC triggered at the **outermost production entry point** (seam altitude), guarded wiring needs a re-trigger AC, and a seam AC whose two endpoints **both already exist** must have its claimed call path verified against current code (**seam-path reality**, Class A/B). Also covers "replaces X" wiring, the removal-keyword sweep, deletion isolation, sizing, and **contract seams** in both directions — what a site *reads* must be emitted and reachable (missing producer field, unsourced parameter/threshold/config value), and what it *sends* across a re-encoded boundary must match the producer's declared input shape.
 
 **Blocker:** missing behavioral seam AC for a new exported symbol; seam-altitude violation; Class B seam AC whose entry point does not reach the stubbed symbol, reaches it only behind a guard nothing in the spec establishes, or does not reach the named method; a derivation AC consuming data absent from the producer contract, or needing an input with no source in scope at the site; removal-keyword match without a build/static-gate note; mixed additive+destructive story; sizing breach.
 
@@ -146,10 +146,7 @@ Run both `ls .nax/rules/` and `ls .claude/rules/` from the project root. Load ev
 - Required patterns (search for tables under headings containing "Required", "Mandatory", "Convention")
 - File-location rules (extract paths from "lives at" / "located in" / "owned by" phrases)
 
-**Precedence — nax rules win.** `.nax/rules/` is the canonical, agent-neutral SSOT: per-agent shims (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`) are generated one-way *from* it (`nax rules export`), and `.claude/rules/` is a Claude-specific layer (a migration source for `.nax/rules/`, not a generated output). When both stores exist, apply this order (higher wins on conflict):
-
-1. `.nax/rules/*.md` — **highest priority** (nax-native canonical store)
-2. `.claude/rules/*.md` — Claude-specific supplement; overridden by a conflicting `.nax/rules/` directive.
+**Precedence — nax rules win.** `.nax/rules/` outranks `.claude/rules/` on conflict. Full precedence rules and the reason for the ordering: [checklists/phase-3-convention-audit.md](checklists/phase-3-convention-audit.md).
 
 nax rule files are path-scoped via frontmatter (`paths`, `appliesTo`, optional `priority`); when a spec code block targets a specific package/path, prefer the rules whose `paths`/`appliesTo` match it.
 
@@ -260,5 +257,5 @@ Do not run on every save during spec drafting.
 ## When phases 7-9 are mandatory
 
 - **Phase 7** runs whenever the spec carries AC mechanism tags (`[unit]` / `[integration]` / `[cli]`), or whenever the host project has adopted the verification-anchor convention. The `[grep]`, `[file]`, and `[verbatim]` tags are **deprecated and banned** — flag every occurrence as a blocker and rewrite the AC into a runtime behaviour (or, for removals, a build/static-gate note).
-- **Phase 8** runs whenever the spec contains removal keywords (`delete|remove|consolidate|retire|rename`), introduces new exported symbols (interfaces, ops, builder methods), **contains any seam AC whose stubbed symbol and named entry point both already exist** (triggers the Class B seam-path reality check — note this condition is independent of the new-symbol one, since a pure extension spec introduces no new exports yet can still assert a false call path), has a story with both additive and destructive ACs, or has any AC (or `Interface` formula an AC rests on) that **derives a value** — renders, charts, aggregates, counts, filters, ratios, threshold-gated totals — from any producer contract, whether another story's, new in this spec, or existing code (triggers the data-availability seam check).
+- **Phase 8** runs whenever the spec contains removal keywords (`delete|remove|consolidate|retire|rename`), introduces new exported symbols (interfaces, ops, builder methods), **contains any seam AC whose stubbed symbol and named entry point both already exist** (triggers the Class B seam-path reality check — note this condition is independent of the new-symbol one, since a pure extension spec introduces no new exports yet can still assert a false call path), has a story with both additive and destructive ACs, or has any AC (or `Interface` formula an AC rests on) that **derives a value** — renders, charts, aggregates, counts, filters, ratios, threshold-gated totals — from any producer contract, whether another story's, new in this spec, or existing code, or has any AC where a site **submits** a payload across a boundary it does not own — HTTP body/query, event or queue message, RPC args, subprocess argv, a file another component parses (both trigger the contract-seam check).
 - **Phase 9** runs whenever `--prd <path>` is passed. Without `--prd`, phase 9 is skipped silently.
