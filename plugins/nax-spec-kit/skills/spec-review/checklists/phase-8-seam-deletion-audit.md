@@ -147,6 +147,52 @@ Checks:
    sibling AC or the spec's design already routes to that site. Flag only when the
    AC genuinely needs the input and *nothing in the spec* says where it comes from.
 
+7. **Request-shape seam (what the consumer *sends* ↔ what the producer *accepts*).**
+   Check 6 runs one direction: the consumer reading a producer's output. This is the
+   other direction. For every AC where a site **submits** a payload across a boundary
+   it does not own — HTTP request body or query params, event/queue message, RPC
+   arguments, subprocess argv, a written file another component parses — reconcile
+   each field it sends against the producer's declared **input** contract: field
+   name, **container shape** (object keyed by name vs array of entries vs scalar),
+   element type, and required-vs-optional.
+
+   **The tell is an AC that describes the payload in the consumer's own vocabulary
+   rather than the producer's wire shape.** "Calls `submitSweep` with `param_grid`
+   reflecting the entered grid rows" is satisfied by *any* encoding of "the entered
+   rows" — an array of `{key, values}` objects reads as a faithful rendering of a
+   form with one row per parameter, while the endpoint declares
+   `param_grid: dict[str, list[Any]]`. Both are reasonable readings of the sentence;
+   only one is accepted at runtime. Whenever an AC says a payload *reflects*,
+   *corresponds to*, *matches*, or *is derived from* some UI or domain structure,
+   the wire shape is unstated and this check applies.
+
+   **Why the consumer's own test cannot catch it.** In the read direction the
+   consumer is missing data and something visibly breaks. Here the consumer is
+   internally consistent — it asserts on *what it sent*, against a **stub or mock of
+   the producer that accepts anything**. The AC goes green, the type-checker is
+   satisfied on both sides independently, and the mismatch surfaces only when a real
+   request crosses the boundary. That is why this is a spec-time check: no test the
+   spec asks for will find it.
+
+   **This does not duplicate Phase 2.** Phase 2 falsifies claims the spec *makes*.
+   The claim here ("calls `submitSweep` with `param_grid` reflecting the rows") is
+   *true* — the defect is in an encoding the spec never states, so there is no false
+   claim to falsify.
+
+   Resolution is to **name the wire shape in the AC** — spell the literal payload
+   (`param_grid` is an object keyed by parameter name, e.g. `{"period": [14, 21]}`),
+   not the structure it was derived from — or to **assert against the producer's real
+   validator** rather than a stub, so the boundary is exercised once for real.
+
+   **Scope bound — do not flag on:** boundaries where a single type-checker spans
+   both sides (same package, shared imported type, generated client whose types come
+   from the producer's schema) — the compiler already enforces it; illustrative
+   example payloads; fields the producer declares optional. Flag only where the
+   payload is **re-encoded** at the boundary — JSON/HTTP, an event bus, a queue, a
+   subprocess, a file — and consumer and producer are checked independently. Language
+   boundaries (TS front end → Python or Go service) are the highest-yield case,
+   because nothing but the spec constrains the two shapes to agree.
+
 **Blocker:** missing behavioral seam AC for a new exported symbol; seam AC that
 triggers an intermediate helper below the wiring instead of the named outermost
 entry point (seam-altitude violation); **Class B seam AC whose named entry point
@@ -154,6 +200,9 @@ does not reach the stubbed symbol, reaches it only behind an enabling flag/guard
 **nothing in the spec establishes**, or does not reach the specific method the AC
 names (seam-path reality)**; a derivation AC that consumes data absent from the
 producer contract's declared fields, **or that needs an input with no source in
-scope at the site** (data-availability seam);
+scope at the site** (data-availability seam); **an AC that submits a payload across
+a re-encoded boundary whose container shape or field names do not match the
+producer's declared input contract, or that states the payload only as "reflecting"
+some UI/domain structure without naming the wire shape** (request-shape seam);
 removal-keyword match without a build/static-gate verification note (or encoded as
 a file-content AC); mixed additive+destructive story; sizing breach.

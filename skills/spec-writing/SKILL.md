@@ -204,6 +204,15 @@ There is a second, easily-missed seam: **data availability**. Seam invariants ab
 
 If the visualization needs data the producer never emits, either **enrich the producer** (add the samples/series to its contract and an AC that produces them) or **write the consumer AC against the data that exists** — name the real datum ("renders a p5/p50/p95 percentile strip"), not a data-rich chart type ("renders the distribution histogram"). The richer noun ships an AC no implementer can satisfy without fabricating data: it may pass a `[unit]` test that only checks an element is present, yet deadlocks the story in semantic/adversarial review, which holds the render to the literal noun. spec-review Phase 8 re-checks this (data-availability seam) — resolve it at authoring time.
 
+The same seam runs the other way: **request shape**. Data availability asks whether the producer *emits* what the consumer reads; this asks whether the producer *accepts* what the consumer sends. Whenever an AC has a site submit a payload across a boundary it does not own — HTTP body or query params, event/queue message, RPC args, subprocess argv, a file another component parses — **name the wire shape in the AC, not the structure it was derived from**:
+
+- ✅ "calls `submitSweep` with `param_grid` as an object keyed by parameter name (`{"period": [14, 21]}`)"
+- ❌ "calls `submitSweep` with `param_grid` reflecting the entered grid rows"
+
+The second is satisfied by any encoding of "the entered rows" — an array of `{key, values}` objects is a faithful reading of a form with one row per parameter, and it fails validation against a `dict[str, list[Any]]` endpoint. Treat *reflects / corresponds to / matches / derived from* as the warning words: they describe the consumer's own structure and leave the wire shape unstated.
+
+This one is invisible to the consumer's test, which asserts on what it sent against a stub that accepts anything — so the AC goes green and both sides type-check independently. It bites only where the payload is **re-encoded** at the boundary (JSON/HTTP, event bus, queue, subprocess, file) and each side is checked separately; a shared imported type or generated client already enforces agreement. Cross-language boundaries (TS front end → Python/Go service) are the highest-yield case. spec-review Phase 8 re-checks this (request-shape seam).
+
 #### Workdir assignment (monorepo only)
 
 If the repo is a **workspace monorepo** (detected in Phase 1 — `workspaces` in root `package.json`, `pnpm-workspace.yaml`, Cargo `[workspace]`, `go.work`, Nx/Turbo/Lerna config, or an existing `.nax/mono/` directory), **every story must declare a `Workdir`** — the package directory the story operates in, relative to the repo root.
