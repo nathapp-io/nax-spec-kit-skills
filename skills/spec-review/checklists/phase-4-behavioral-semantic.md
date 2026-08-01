@@ -102,11 +102,11 @@ If a class is exercised by no AC's test **and** not listed in the spec's **Out-o
 
 A row in the spec's `### Failure Handling` design subsection (or `## Failure Modes` prose) with **neither a covering AC in its owning story nor an entry in that story's `Out of scope`** is an authoring gap, not a planner one.
 
-Why it matters: `nax plan` treats a failure-mode row without an AC as a *missing* AC and authors one itself. The criterion ships either way — the question is only whether the spec or the planner chose its wording, and per the spec-writing guide's Rule 2 that wording is the reviewer's verbatim quote surface. A planner-authored failure AC is one nobody gave a locus token to. Observed: `short-selling` (+3), `sp4-mfa-step-up` (+3), and `cost-ledger` (+1) all gained planner-written failure-path ACs traceable to Failure Handling prose the spec never encoded.
+Why it matters: the planner authors the missing AC itself, so the criterion ships either way and only its *wording* is at stake — and AC wording is the reviewer's quote surface (Rule 2). See the spec-writing guide's Rule 11 for the mechanism and the observed leaks.
 
 Detection: enumerate the rows of each story's Failure Handling subsection; for each, look for an AC asserting that behaviour, or an `Out of scope` entry naming it. Flag **major** (it predicts wording loss, not incorrectness).
 
-**Do not flag the inverse.** An AC covering a negative path the design does *not* state is not a finding here — unanticipated edge cases legitimately belong in the planner's `suggestedCriteria`, which is advisory and promoted into `acceptanceCriteria` only after it passes. Do not recommend pinning speculative failure paths into the spec: that converts a safe suggestion into a blocking criterion and spends the story's AC budget.
+**Do not flag the inverse.** An AC covering a negative path the design does *not* state is not a finding — unanticipated edge cases belong in the planner's advisory `suggestedCriteria`. Recommending they be pinned converts a safe suggestion into a permanently-red blocking criterion and spends the story's AC budget.
 
 ### Adversarial-scope gap (risk-sensitive stories)
 

@@ -146,10 +146,7 @@ Run both `ls .nax/rules/` and `ls .claude/rules/` from the project root. Load ev
 - Required patterns (search for tables under headings containing "Required", "Mandatory", "Convention")
 - File-location rules (extract paths from "lives at" / "located in" / "owned by" phrases)
 
-**Precedence — nax rules win.** `.nax/rules/` is the canonical, agent-neutral SSOT: per-agent shims (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`) are generated one-way *from* it (`nax rules export`), and `.claude/rules/` is a Claude-specific layer (a migration source for `.nax/rules/`, not a generated output). When both stores exist, apply this order (higher wins on conflict):
-
-1. `.nax/rules/*.md` — **highest priority** (nax-native canonical store)
-2. `.claude/rules/*.md` — Claude-specific supplement; overridden by a conflicting `.nax/rules/` directive.
+**Precedence — nax rules win.** `.nax/rules/` outranks `.claude/rules/` on conflict. Full precedence rules and the reason for the ordering: [checklists/phase-3-convention-audit.md](checklists/phase-3-convention-audit.md).
 
 nax rule files are path-scoped via frontmatter (`paths`, `appliesTo`, optional `priority`); when a spec code block targets a specific package/path, prefer the rules whose `paths`/`appliesTo` match it.
 

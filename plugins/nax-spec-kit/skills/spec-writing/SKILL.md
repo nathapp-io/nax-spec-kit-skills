@@ -204,14 +204,12 @@ There is a second, easily-missed seam: **data availability**. Seam invariants ab
 
 If the visualization needs data the producer never emits, either **enrich the producer** (add the samples/series to its contract and an AC that produces them) or **write the consumer AC against the data that exists** — name the real datum ("renders a p5/p50/p95 percentile strip"), not a data-rich chart type ("renders the distribution histogram"). The richer noun ships an AC no implementer can satisfy without fabricating data: it may pass a `[unit]` test that only checks an element is present, yet deadlocks the story in semantic/adversarial review, which holds the render to the literal noun. spec-review Phase 8 re-checks this (contract seams) — resolve it at authoring time.
 
-The same seam runs the other way: **request shape**. Data availability asks whether the producer *emits* what the consumer reads; this asks whether the producer *accepts* what the consumer sends. Whenever an AC has a site submit a payload across a boundary it does not own — HTTP body or query params, event/queue message, RPC args, subprocess argv, a file another component parses — **name the wire shape in the AC, not the structure it was derived from**:
+The same seam runs the other way: **request shape**. Whenever an AC has a site submit a payload across a boundary it does not own — HTTP body/query, event or queue message, RPC args, subprocess argv, a file another component parses — **name the wire shape, not the structure it was derived from**:
 
 - ✅ "calls `submitSweep` with `param_grid` as an object keyed by parameter name (`{"period": [14, 21]}`)"
 - ❌ "calls `submitSweep` with `param_grid` reflecting the entered grid rows"
 
-The second is satisfied by any encoding of "the entered rows" — an array of `{key, values}` objects is a faithful reading of a form with one row per parameter, and it fails validation against a `dict[str, list[Any]]` endpoint. Treat *reflects / corresponds to / matches / derived from* as the warning words: they describe the consumer's own structure and leave the wire shape unstated.
-
-No test you can write catches this: the consumer asserts on what it *sent*, against a stub that accepts anything, and both sides type-check independently. It only bites where the payload is **re-encoded** at the boundary (JSON/HTTP, event bus, queue, subprocess, file) — a shared imported type or generated client already enforces agreement, so skip it there. Cross-language boundaries (TS front end → Python/Go service) are the highest-yield case. spec-review Phase 8 re-checks this.
+The second admits any encoding of "the entered rows" — including an array of `{key, values}` against a `dict[str, list[Any]]` endpoint. Treat *reflects / corresponds to / matches / derived from* as warning words. No test catches this: the consumer asserts on what it *sent*, against a stub that accepts anything. It bites only where the payload is re-encoded (JSON/HTTP, queue, subprocess, file) — a shared type or generated client already enforces agreement. spec-review Phase 8 re-checks this.
 
 #### Workdir assignment (monorepo only)
 
@@ -313,7 +311,7 @@ Banned tokens (treat each hit as a blocker):
 
 For each hit, rewrite the AC into the runtime behaviour it is meant to prove, using the conversion table in §Nax-friendly AC format above (or move a removal/absence claim to the story's build/static-gate verification note). Re-grep until zero hits remain. Then transition to spec-review.
 
-**Rationale:** `nax plan` decomposes spec.md into `prd.json`, whose `acceptanceCriteria` are fed into agent implementation sessions that write a failing test then make it pass — there is no shell executor and no static-grep step. A file-content / shell AC either can't be expressed as a runtime test (negative greps) or degrades into a meaningless meta-test that passes on a pasted string. Catching this at Phase 6 saves a full planner round-trip; spec-review Phase 7/9 are defense-in-depth.
+**Why this blocks:** nax has no shell executor — an implementation session writes a failing test and makes it pass, so a file-content / shell AC is not implementable (see the guide's anti-pattern table). Catching it here saves a planner round-trip; spec-review Phase 7/9 are defense-in-depth.
 
 Loop policy:
 
