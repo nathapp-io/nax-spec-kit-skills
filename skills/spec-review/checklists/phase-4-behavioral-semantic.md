@@ -178,8 +178,7 @@ Run this check by:
 
 ## Common Phase 4 catches
 
-- An AC asserting a fixture property that the spec's own generation procedure contradicts ("only `t*` is True" against a procedure yielding 17 Trues) — unsatisfiable as written, and it presents as reviewer oscillation rather than as a spec defect
-
+- An AC asserting a fixture property the spec's own generation procedure contradicts — unsatisfiable as written (Step 5)
 - "`claims-cited` rejects uncited PRD claims" but the code measures manifest verification rate
 - "`plan-checklist.ts` is reusable as Phase 3" but its shape is `PostDebateVerifier(ctx)`, incompatible with op-shaped usage
 - "`citations.ts` provides citation discipline" but no caller wires it — ships in name only

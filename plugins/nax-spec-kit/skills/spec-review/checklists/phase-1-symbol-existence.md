@@ -56,7 +56,7 @@ must instead trace to one of:
 
 | Trace target | How to check |
 |:---|:---|
-| A fixture already in the repo | `ls` the fixture dirs; `grep -rn "<literal>" test/ fixtures/ data/ 2>/dev/null` |
+| A fixture already in the repo | locate the repo's fixture/testdata dirs first — the name varies (`fixtures/`, `testdata/`, `tests/data/`, or alongside the tests) — then `grep -rn "<literal>" <those dirs> test/ 2>/dev/null` |
 | A documented external source | the literal appears in the spec's own source/provenance section, a README, or a config default |
 | Explicitly new | listed in the spec's "Remaining work" / "New code" table, same as any other new artifact |
 
@@ -128,6 +128,8 @@ Phase 2 uses `modifiedFiles` to know which type definitions are about to grow; P
 
 ## Finding template
 
+### Symbol not found
+
 ```markdown
 ### Blocker — `<symbol>` not found in codebase or new-work table
 
@@ -142,7 +144,7 @@ Phase 2 uses `modifiedFiles` to know which type definitions are about to grow; P
 ### Blocker — data literal `<literal>` has no traceable source
 
 **Spec reference:** <section> line <N> (`<spec-quote>`)
-**Codebase reality:** not present in any fixture (`grep -rn "<literal>" test/ fixtures/ data/` → 0 matches); the spec names no source for it; not listed in "<remaining-work-section-name>"
+**Codebase reality:** not present in any fixture (`grep -rn "<literal>" <fixture-dirs> test/` → 0 matches); the spec names no source for it; not listed in "<remaining-work-section-name>"
 **Why this blocks:** the implementer must invent the value and the reviewer cannot check it. If the guess is wrong, the implementation is correct and the AC is not — which presents as reviewer oscillation rather than as a spec defect.
 **Recommended fix:** <one of: cite the source that defines it | add the fixture to the new-work table | replace the literal with the real value>
 ```
