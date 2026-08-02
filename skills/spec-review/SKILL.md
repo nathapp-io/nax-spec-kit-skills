@@ -35,9 +35,9 @@ The audit runs up to nine phases in order. Phases 1-6 always run; phases 7-9 run
 
 See [checklists/phase-1-symbol-existence.md](checklists/phase-1-symbol-existence.md).
 
-Extract every named symbol (file path, function, type, constant, config key) the spec mentions. For each, verify it either already exists OR is explicitly listed in the spec's "Remaining work" / "New code" section.
+Extract every named symbol (file path, function, type, constant, config key) the spec mentions. For each, verify it either already exists OR is explicitly listed in the spec's "Remaining work" / "New code" section. Also extract **data literals** — quoted filenames, URLs and magic strings the feature consumes rather than defines. These need a different lookup (fixtures, a documented source, or the new-work table), because a `src/ test/` grep legitimately returns nothing for them and so proves nothing.
 
-**Blocker:** any symbol that exists in neither the codebase nor the spec's new-work table.
+**Blocker:** any symbol that exists in neither the codebase nor the spec's new-work table; any data literal that traces to no fixture, no documented source, and no new-work entry.
 **Output:** an allowlist of forward-references (symbols the spec is creating) for later phases.
 
 ### Phase 2 — Shape audit
@@ -61,7 +61,7 @@ Load every rule file under the project's rule store(s) — `.nax/rules/` (nax-na
 
 See [checklists/phase-4-behavioral-semantic.md](checklists/phase-4-behavioral-semantic.md).
 
-The only LLM-judgment phase. For each named check/function the spec describes behaviorally, open the actual implementation and confirm prose matches code semantics. Also runs three completeness checks: **unpinned failure-handling rows** (a Failure Handling row with no covering AC and no out-of-scope entry — the planner authors it instead, so the spec loses control of wording that Rule 2 makes load-bearing), **under-specified input classes** (an input dimension no AC pins and no Out-of-scope entry defers) and the **adversarial-scope gap** (a risk-sensitive story — auth, rate limiting, replay/MFA, idempotency/dedup stores, tenancy, concurrency, expiry, crypto — that leaves any canonical risk property of its domain neither pinned by a property-style AC nor named in an Out-of-scope entry; checked **per-property**, so a present-but-partial Out-of-scope section does not cover the properties it stays silent about; a predictable adversarial-review deadlock, flagged major).
+The only LLM-judgment phase. For each named check/function the spec describes behaviorally, open the actual implementation and confirm prose matches code semantics. Also runs four completeness checks: **unpinned failure-handling rows** (a Failure Handling row with no covering AC and no out-of-scope entry — the planner authors it instead, so the spec loses control of wording that Rule 2 makes load-bearing), **under-specified input classes** (an input dimension no AC pins and no Out-of-scope entry defers) and the **adversarial-scope gap** (a risk-sensitive story — auth, rate limiting, replay/MFA, idempotency/dedup stores, tenancy, concurrency, expiry, crypto — that leaves any canonical risk property of its domain neither pinned by a property-style AC nor named in an Out-of-scope entry; checked **per-property**, so a present-but-partial Out-of-scope section does not cover the properties it stays silent about; a predictable adversarial-review deadlock, flagged major) and **fixture-shape derivability** (an AC asserting a property of a fixture — "only `t*` is True", "exactly 3 rows" — that does not follow from the spec's own stated generation procedure, or that the spec never says how to build; unsatisfiable as written).
 
 **Blocker:** spec prose describes different semantics than the code implements (e.g. "rejects uncited PRD claims" when the code measures manifest verification rate).
 **Major:** under-specified input class; adversarial-scope gap on a risk-sensitive story; a `### Failure Handling` row with neither a covering AC nor an out-of-scope entry (the planner authors it instead, in its own words).
@@ -167,6 +167,8 @@ grep -rn "<symbol>" src/ test/ 2>/dev/null | head -5
 ```
 
 Cross-reference results against the spec's "New code" / "Remaining work" table. Anything not found in either place is a Phase 1 blocker.
+
+Data literals (a consumed filename, URL, or magic string) are extracted too, but the grep above does not settle them — trace each to a repo fixture, a source the spec names, or the new-work table.
 
 ### Shape verification (Phase 2)
 
