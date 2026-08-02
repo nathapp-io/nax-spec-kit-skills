@@ -118,6 +118,33 @@ Detection: match risk-domain keywords against the story's title, design touchpoi
 
 Flag **MAJOR** (it predicts non-convergence, not incorrectness). **Recommended fix:** pin each silent risk property as an executable AC, or declare it out of scope — the spec, not a downstream reviewer, must own the scope boundary.
 
+### Fixture-shape derivability (satisfiability)
+
+When an AC asserts a **property of a fixture** — "only `t*` is True", "exactly 3
+rows", "sorted ascending by timestamp", "the second entry is empty" — that property
+must follow from however the spec says the fixture is built. Derive it yourself
+from the spec's stated generation procedure and compare.
+
+This is a satisfiability check, not a correctness one, and that is why it belongs
+in the judgment phase rather than Phase 1: the literal exists, the code is fine,
+and the AC is still impossible.
+
+| Outcome | Action |
+|:---|:---|
+| Property follows from the procedure | ✅ pass |
+| Property contradicts the procedure | ❌ **BLOCKER** — no implementation can satisfy it |
+| Spec asserts the property but never says how the fixture is built | ❌ **BLOCKER** — underivable; the implementer invents a fixture, the reviewer checks against a different imagined one |
+
+Worked example. A spec's generation procedure sets a flag for every row matching a
+prefix, and the AC asserts "only `t*` is True". If the described procedure produces
+17 matching rows, the AC is false against the spec's own fixture. The implementer
+cannot satisfy it, the reviewer cannot pass it, and the story burned 4+ blocking
+rounds before a human read both halves together.
+
+Ask the question in this direction — *"what does the described procedure produce?"*
+— and only then compare to the claim. Reading the claim first primes you to accept
+it.
+
 ## Step 6 — Reality of "shipped" claims
 
 When the spec says "X is already shipped" or "DONE", open the referenced file and verify it actually does what the spec claims. Just because a file exists doesn't mean its behavior matches the claim.
@@ -150,6 +177,8 @@ Run this check by:
 ```
 
 ## Common Phase 4 catches
+
+- An AC asserting a fixture property that the spec's own generation procedure contradicts ("only `t*` is True" against a procedure yielding 17 Trues) — unsatisfiable as written, and it presents as reviewer oscillation rather than as a spec defect
 
 - "`claims-cited` rejects uncited PRD claims" but the code measures manifest verification rate
 - "`plan-checklist.ts` is reusable as Phase 3" but its shape is `PostDebateVerifier(ctx)`, incompatible with op-shaped usage
