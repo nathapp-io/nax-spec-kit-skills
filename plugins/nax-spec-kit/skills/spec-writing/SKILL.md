@@ -169,6 +169,16 @@ Estimate AC count and files touched from the intent + design notes. Apply the gu
 > absent at plan time but exists at the consumer's runtime (dependencies run
 > first), so it is a legitimate read — not a file this story authors. See
 > guide § Context Hints.
+>
+> **Third list — `Modifies` (→ `modifiedFiles`).** An EXISTING file this story's
+> own correct change necessarily breaks, almost always a test whose closed-world
+> assertion pins a shape the story mutates. Group entries under a bold
+> `**US-00N**` lead-in and state the file, the assertion, and the invariant that
+> replaces it — the text is carried **verbatim** into the implementer prompt, so
+> "update affected tests" is a loss, not a summary. An entry with no `**US-00N**`
+> group above it is dropped with a warning. Omitting a needed entry deadlocks the
+> story: a correct implementation fails an old assertion and the implementer's
+> remaining move is to revert. See guide § Context Hints.
 
 **Must split** (lower bound enforcement):
 - More ACs than the `maxAcCount` resolved in Pre-flight step 3 (fallback 15), **counted as assertions, not bullets.** `nax plan` atomically splits a compound AC into one AC per assertion, so 13 bullets can plan to 21 — split them while authoring and the spec count matches the PRD count. Also check description bullets against the resolved `maxBulletPoints`. (See guide § Story Sizing for why.)
@@ -227,7 +237,7 @@ Propose the story list with dependencies (and per-story `Workdir` when monorepo)
 
 **Blocker:** sizing breach not resolved (over or under); removal keywords present with no terminal-cleanup story planned; new externally-visible symbol without a planned seam AC for its consumer story; a consumer AC that renders/charts/aggregates data absent from the producer contract's declared fields (contract seam); **monorepo detected and any story is missing a `Workdir`, carries more than one package, or names a package path that is not a workspace member**.
 
-**Output (written to file):** Stories section with 3-7 stories, dependency chain, `Context Files` (reads) and `Creates` (new files) per story, a single-valued `Workdir` per story when the repo is a monorepo, terminal-cleanup story if applicable, and a `### Seams` block listing cross-story invariants.
+**Output (written to file):** Stories section with 3-7 stories, dependency chain, `Context Files` (reads), `Creates` (new files) and `Modifies` (existing files the story is authorised to change) per story, a single-valued `Workdir` per story when the repo is a monorepo, terminal-cleanup story if applicable, and a `### Seams` block listing cross-story invariants.
 
 ### Phase 5 — AC drafting
 

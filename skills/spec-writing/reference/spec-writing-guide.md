@@ -203,7 +203,7 @@ where additive slices land green and cleanup is silently dropped.
 
 Every story **must** list relevant context files. Without them, the agent guesses which patterns to follow.
 
-Two distinct lists with two distinct meanings — **never mix them**:
+Three distinct lists with three distinct meanings — **never mix them**:
 
 ### `Context Files` → files to **read** (exist by the time this story runs)
 
@@ -252,6 +252,43 @@ A file may appear in **`Context Files`** (a sibling to mirror) and **`Creates`**
 (the new file itself) across the same story — but a single path belongs to exactly
 one list. For a greenfield project with no existing code, a story may have only a
 `Creates` list and no `Context Files`.
+
+### `Modifies` → existing files the story is **authorised to change**
+
+An existing file — almost always a test — that this story's own correct change
+necessarily breaks. `nax plan` maps this list to `modifiedFiles` in the PRD, and
+the implementer prompt renders it as an explicit authorisation block.
+
+Write it whenever the story mutates a shape that an existing closed-world
+assertion pins. Without the entry, the implementer that writes a *correct*
+implementation and watches an old assertion fail has two moves left: leave the
+suite red, or revert its change until the assertion passes. The second has been
+observed in the wild. This block is what makes the first unnecessary.
+
+Group entries under a bold `**US-00N**` lead-in — that lead-in is what attributes
+the authorisation to a story, and an entry with no group above it is dropped with
+a warning rather than applied to every story:
+
+```markdown
+### Modifies
+
+**US-001**
+- `test/unit/context/engine/orchestrator.test.ts` — the test named "chunkTokens
+  covers exactly the included chunks" (`:99-110`) asserts `summed ===
+  usedTokens - digestTokens`. Its `BASE_REQUEST` carries no `priorStageDigest`,
+  so under US-001 AC 6 the identity no longer holds and the assertion fails
+  against a correct implementation. US-001 owns updating it to the new
+  invariant: `summed` equals `usedTokens` minus the prior-stage digest tokens.
+```
+
+**The reason is the payload, and it is carried verbatim.** Name the file, the
+test, the assertion, and the invariant that replaces it. `nax plan` does not
+paraphrase this text and the planner is never asked to produce it — the entire
+point is the specificity that "update affected engine tests" destroys.
+
+Being listed here is permission, not a task: an implementer touches the file only
+if its change actually requires it. And it is not a substitute for an
+out-of-scope entry — a deferral does not authorise anything.
 
 ## Workdir (monorepo, required)
 
