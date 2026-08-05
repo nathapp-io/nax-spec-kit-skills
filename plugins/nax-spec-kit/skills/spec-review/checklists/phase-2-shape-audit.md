@@ -138,9 +138,27 @@ assertion turns one red test into the same red test with a different error, so s
 whole test body before closing the finding.
 
 A closed-world hit is a **blocker** unless the spec **authorises the implementer to edit
-that test file** — an AC covering the update, or a `Modifies` / `Context Files` entry
-naming it. Authorisation is the bar because permission is what the implementer lacks;
-anything short of it leaves the gate red with no legal move.
+that test file** — an AC covering the update, or a `### Modifies` entry naming it.
+Authorisation is the bar because permission is what the implementer lacks; anything short
+of it leaves the gate red with no legal move.
+
+A `Context Files` entry is **not** authorisation. It maps to `contextFiles` — a read list —
+and says only that the implementer may look at the file. Only `### Modifies` maps to
+`modifiedFiles`, which is what the implementer prompt renders as permission to change an
+existing file.
+
+**Check the `Modifies` entry is actually well-formed**, because a malformed one is worse
+than a missing one — it looks like authorisation and reaches nobody:
+
+- Entries must sit under a bold `**US-00N**` group lead-in. `nax plan` attributes
+  ownership from that lead-in; an entry with no group above it is dropped with a warning
+  and never reaches any story.
+- The group must name a story that exists in this spec. `**US-007**` in a five-story spec
+  is dropped the same way.
+- The reason is carried verbatim into the implementer prompt, so it must name the file,
+  the assertion, and the invariant that replaces it. "update affected tests" is a
+  **major** finding on its own: it satisfies the authorisation check while carrying none
+  of the information the implementer needs to make the edit correctly.
 
 An `## Out of Scope` line does **not** clear it: deferring the test update does not stop
 the assertion failing, it only makes the failure expected. Downgrade to **major** solely
@@ -159,8 +177,8 @@ satisfies both contracts, so retry, escalation, and a stronger model all fail al
 **Recommended fix** — one of, in preference order:
 
 1. Add an AC to the mutating story that updates the stale assertion, and list the
-   test file under that story's `Modifies` / `Context Files` so the implementer is
-   permitted to touch it.
+   test file under a `### Modifies` block grouped by that story's `**US-00N**`
+   lead-in, so the implementer is permitted to touch it.
 2. Relax the assertion to open-world in a preparatory story ordered before the
    mutation — a superset check plus a loop over the *expected* members preserves
    the original intent without the trap. Name both rewrites in the AC; an AC that
@@ -208,7 +226,8 @@ editing `<test file>`, and test-authorship isolation bars the implementer from d
 so unprompted — the story deadlocks with a correct implementation.
 
 **Recommended fix:** add an AC to <story> updating the assertion, and list
-`<test file>` in that story's `Modifies`.
+`<test file>` under a `### Modifies` block grouped by `**<story>**`, with a reason
+naming the assertion and the invariant that replaces it.
 ```
 
 ## Common Phase 2 catches
