@@ -5,11 +5,14 @@ A walkthrough of what `spec-review` catches when run against the asymmetric-pipe
 ## Setup
 
 ```
-Spec: /home/williamkhoo/Desktop/projects/nathapp/ai-coder/nax/docs/specs/SPEC-plan-asymmetric-pipeline.md
-Project: /home/williamkhoo/Desktop/projects/nathapp/ai-coder/nax
-Rules: .claude/rules/{forbidden-patterns,retry-strategy,adapter-wiring,...}.md
+Spec: docs/specs/SPEC-plan-asymmetric-pipeline.md
+Project: <project root>
+Rules: .nax/rules/          — (absent at the time of this run)
+       .claude/rules/{forbidden-patterns,retry-strategy,adapter-wiring,...}.md
 AC cap: 15 (derived from project conventions)
 ```
+
+**Note on rule stores.** This run predates the `.nax/rules/` store, so every Phase 3 citation below points at `.claude/rules/`. On a project that has adopted `.nax/rules/`, Phase 3 loads **both** stores and `.nax/rules/` wins on conflict — see [../checklists/phase-3-convention-audit.md](../checklists/phase-3-convention-audit.md) Step 1. The findings themselves are unchanged by which store a rule lives in; only the citation path and the tiebreak differ. A worked tiebreak appears at the end of Phase 3 below.
 
 ## Findings (first revision)
 
@@ -122,6 +125,25 @@ AC cap: 15 (derived from project conventions)
 The critic must fail-open on exhaustion. Run-kind makes that natural.
 
 **Recommended fix:** Change to `kind: "run"`; `build()` returns plain string (not `{ prompt }`).
+
+#### Illustrative — how the same phase resolves a two-store conflict
+
+Not a finding from this run (the project had no `.nax/rules/` at the time). Included so the precedence rule has a concrete shape.
+
+Suppose Phase 3 loads both stores and finds:
+
+- `.claude/rules/forbidden-patterns.md` — "Hand-rolled LLM JSON extraction → use `parseLLMJson<T>(output)` from `src/utils/llm-json`"
+- `.nax/rules/llm-output.md` (frontmatter `paths: ["src/operations/**"]`) — "LLM output parsing goes through `parseStructured()`; `parseLLMJson` is legacy and MUST NOT be used in new ops"
+
+The spec's critic op lives at `src/operations/plan-critic.ts`, which matches the nax rule's `paths` glob.
+
+**Resolution:** the `.nax/rules/` directive wins — it is the canonical agent-neutral SSOT, and `.claude/rules/` is a Claude-specific layer generated-from / migrated-into it, never read back. The blocker is raised against `parseStructured()`, and the recommended fix cites the nax rule, not the Claude one. Record the superseded `.claude/rules/` line in the finding so the reader can see the conflict was resolved rather than missed.
+
+**Report line:**
+
+> **Blocker** — bare `JSON.parse(output)` in critic op
+> **Rule violated:** `.nax/rules/llm-output.md` (`paths: src/operations/**`) — "LLM output parsing goes through `parseStructured()`"
+> **Superseded by precedence:** `.claude/rules/forbidden-patterns.md` prescribes `parseLLMJson`; `.nax/rules/` outranks it.
 
 ---
 

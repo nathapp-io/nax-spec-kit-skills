@@ -59,7 +59,7 @@ Before Phase 1:
    | `maxAcCount` | hard cap on ACs per story | `15` |
    | `maxBulletPoints` | hard cap on description bullets per story | `15` |
 
-   **State the resolved numbers before Phase 4** and size every story against *those*, not against the guide's generic 15 — observed values range from **6** (`rs-calculator`) to **24** (`rs-stock`), so the guide's number is wrong more often than right. If the file or the key is missing, say so and use the fallbacks. If `enabled` is `false`, the gate will not fail the run, but keep sizing to `maxAcCount` anyway — an oversized story is a planning problem before it is a precheck problem.
+   **State the resolved numbers before Phase 4** and size every story against *those*, not against the guide's generic 15 — observed values across real projects range from **6** to **24**, so the guide's number is wrong more often than right. If the file or the key is missing, say so and use the fallbacks. If `enabled` is `false`, the gate will not fail the run, but keep sizing to `maxAcCount` anyway — an oversized story is a planning problem before it is a precheck problem.
 
    **Root config only.** Do **not** read `.nax/mono/<pkg>/config.json` — per-package configs exist to override *commands* (build/test/lint), not sizing policy.
 

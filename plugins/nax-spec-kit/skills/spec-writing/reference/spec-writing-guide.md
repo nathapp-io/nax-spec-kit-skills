@@ -167,12 +167,13 @@ spec freely and is the documented cause of the US-005 drift.
   **counted as assertions, not bullets.** Two corrections to the naive reading:
   - **Count assertions.** `nax plan` atomically splits a compound AC into one AC per assertion, so a
     bullet asserting three things is three PRD ACs. A story that looks like 13 bullets can plan to 21
-    (`bot-command-groups` US-004 did exactly that; the feature went 45 → 64, +42%). Split compound
+    (an observed story did exactly that; the feature went 45 → 64, +42%). Split compound
     ACs at authoring time and the spec count matches the PRD count. Independent reason to do it:
     acceptance generates **one test per AC**, so a compound AC yields one test covering several
     assertions — worse coverage and worse failure attribution when it fails.
-  - **The cap is per project, and 15 is only a fallback.** Observed values span **6** to **24**
-    (`rs-calculator` 6, `koda`/`starter` 15, `nathapp-nestjs-platform` 22, `rs-stock` 24), so the
+  - **The cap is per project, and 15 is only a fallback.** Observed values across a sample of real
+    projects span **6** to **24** (a small library at 6, application projects at 15, a backend
+    platform at 22, a data-heavy project at 24), so the
     generic number is wrong more often than right — always size against the value resolved from
     `.nax/config.json`. A separate `maxBulletPoints` (8–22) caps description bullets. Corpus check:
     6.7% of stories exceed 15 and 0.5% exceed 24, so the ceiling binds rarely — but when it does the
