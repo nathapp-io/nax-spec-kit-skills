@@ -5,8 +5,8 @@ A walkthrough of what `spec-review` catches when run against the asymmetric-pipe
 ## Setup
 
 ```
-Spec: /home/williamkhoo/Desktop/projects/nathapp/ai-coder/nax/docs/specs/SPEC-plan-asymmetric-pipeline.md
-Project: /home/williamkhoo/Desktop/projects/nathapp/ai-coder/nax
+Spec: docs/specs/SPEC-plan-asymmetric-pipeline.md
+Project: <project root>
 Rules: .nax/rules/          — (absent at the time of this run)
        .claude/rules/{forbidden-patterns,retry-strategy,adapter-wiring,...}.md
 AC cap: 15 (derived from project conventions)
