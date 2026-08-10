@@ -131,6 +131,16 @@ Every AC must be **behavioral and independently testable**.
 
     **Non-goal — do not invent edge cases to pin.** This rule covers rows the design *already states*. Behavioral edge cases and negative paths you have **not** thought of are what the planner's `suggestedCriteria` channel and its hardening pass exist to surface: they are advisory, and are promoted into `acceptanceCriteria` only after they pass. Pinning a speculative case converts a safe suggestion into a blocking criterion that is permanently red if you guessed wrong, and spends AC budget against the story's cap. Pin what the spec states; leave what it does not to the hardening pass.
 
+12. **Pin every design mandate that names an API, or make the prose non-normative.** Design prose that constrains *how* the implementation must work by naming a specific symbol, API or call order — a "Library APIs used:" list, "X goes through `foo()` directly", "project through A, **not** `B`", a numbered call sequence — is a normative contract, not commentary. For each such mandate, do one of three things in the story that owns the touchpoint: write an AC that pins the call observably, rewrite the prose non-normatively ("any converter that maps an index to a pixel"), or name it in that story's **Out of scope**.
+
+    Why this one deadlocks rather than merely leaking wording. `nax plan` copies design prose into the story's `description`, so semantic review can quote the mandate verbatim — while no test can reach it, because no AC named it. The implementer picks a different-but-plausible API, every gate goes green, and semantic blocks on the prose round after round. Rectification then thrashes between API shapes, and the story exits on a bail predicate rather than a verdict. Unlike Rule 11, the planner does **not** rescue this: it authors ACs for failure-mode rows, not for approach prose.
+
+    **This rule fires on third-party and standard-library APIs too.** Every other "must actually be invoked" guard in this kit — the two-anchor rule, the seam ACs, the Phase 5 unpaired-export blocker — triggers on symbols *this spec* exports. A mandate to use a dependency's API is unguarded by anything else.
+
+    **Mocked-collaborator corollary.** When the story's test harness replaces the mandated collaborator with a test double — an SDK, an HTTP client, a rendering or charting library stubbed wholesale in the unit environment — an AC that asserts only an *outcome downstream of that double* cannot discriminate a conforming implementation from a non-conforming one. The double gets reshaped to whatever the implementation happens to call, and the AC passes either way. Assert on the double's captured calls instead, or give the double the real dependency's contract (including the inputs on which it returns nothing) so the outcome AC becomes discriminating. If the spec's own Design says the dependency is mocked wholesale, this is mandatory, not advisory.
+
+    A prohibition needs the negative to be observable: "through the index, **not** `timeLookup()`" is only pinned by an AC that fails when `timeLookup()` is used — typically a double whose `timeLookup()` returns nothing for the inputs the mandate is about.
+
 ### Examples
 
 ❌ **Bad:**

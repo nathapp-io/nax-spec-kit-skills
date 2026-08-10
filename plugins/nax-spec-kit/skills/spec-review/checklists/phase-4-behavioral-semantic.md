@@ -108,6 +108,25 @@ Detection: enumerate the rows of each story's Failure Handling subsection; for e
 
 **Do not flag the inverse.** An AC covering a negative path the design does *not* state is not a finding — unanticipated edge cases belong in the planner's advisory `suggestedCriteria`. Recommending they be pinned converts a safe suggestion into a permanently-red blocking criterion and spends the story's AC budget.
 
+### Unpinned design mandate (completeness)
+
+Sweep the **whole** Design section — every subsection, not just `### Failure Handling` — for prose that constrains *how* the implementation must work by naming a symbol: "Library APIs used:" lists, "X goes through `foo()` directly", "through A, **not** `B`", numbered call sequences. Each is a normative contract.
+
+Detection: for each mandate, identify the story that owns the touchpoint (via `Modifies` / `Creates` / `Context Files`), then look for an AC in that story whose text names the mandated symbol, or an `Out of scope` entry releasing it. A mandate named in neither is a finding. Checked **per named API** — a list of four converters covered by one AC that names one of them leaves three unpinned.
+
+Why it deadlocks rather than merely leaking wording: `nax plan` copies design prose into the story's `description`, so the mandate survives into the PRD even when no AC carries it. Semantic review can then quote it verbatim against green code, while no test can reach it — and unlike a Failure Handling row, the planner does **not** author a covering AC. The implementer picks a different-but-plausible API, every gate passes, and rectification thrashes between API shapes until the story exits on a bail predicate.
+
+Two sub-checks:
+
+- **Prohibitions need an observable negative.** "through the index, **not** `timeLookup()`" is pinned only by an AC that fails when `timeLookup()` is used — typically a double whose `timeLookup()` returns nothing for the inputs in question.
+- **Mocked collaborator.** If the mandated API belongs to a dependency the repo stubs wholesale in that story's test environment, an AC asserting only a *downstream outcome* does not cover the mandate: the double gets reshaped to whatever the implementation calls, so the AC passes for conforming and non-conforming implementations alike. Require an AC asserting on the double's captured calls, or a double carrying the real contract. Treat outcome-only coverage as uncovered. Where the spec *itself* notes the dependency is mocked wholesale (often as the stated reason for choosing this approach over another), this sub-check is mandatory.
+
+Note the asymmetry with Phases 5 and 8: every "must actually be invoked" guard there fires on symbols *this spec* exports (unpaired new externally-visible symbol, two-anchor seam AC, contract seams reconciled from ACs outward). A mandate to use a third-party or standard-library API matches none of them, and an AC that is silent — rather than contradictory — is invisible to the cross-AC consistency check above. This check is the only one that reaches it.
+
+Flag **major** (it predicts non-convergence, not incorrectness).
+
+**Recommended fix:** pin the call as an AC, soften the prose to non-normative wording ("any converter that maps an index to a pixel"), or declare it out of scope.
+
 ### Adversarial-scope gap (risk-sensitive stories)
 
 A story whose subject matter is **risk-sensitive** — authentication/sessions, rate limiting/counters, replay protection (TOTP/OTP/MFA/nonce), idempotency/dedup stores (reserve-then-finalize, upsert), multi-tenancy scoping, concurrency/atomicity (check-then-act, upsert, locks), expiry/TTL/retention, crypto/secrets — but which leaves any of that domain's **canonical risk properties** (atomicity, window expiry, replay rejection, tenant scoping, expiry filtering, finalize/write-back atomicity) **neither pinned by a property-style AC nor named in an `Out of scope` entry**, is a predictable adversarial-review deadlock.
@@ -189,3 +208,4 @@ Run this check by:
 - IAM-store story with 7 happy-path passthrough ACs and no atomicity/replay/tenancy AC or out-of-scope declaration — adversarial reviewer blocked ~18 rounds on the silent properties
 - Reserve-then-finalize store whose `Out of scope` defers tenancy + eviction but never names the finalize write-back's atomicity — the present-but-partial deferral that still deadlocks, because coverage must be per-property
 - A `### Failure Handling` row ("warn and skip an unmarked position") with no covering AC and no out-of-scope entry — the planner writes the AC instead, in its own words, with no locus token
+- A Design "Library APIs used:" list naming four dependency methods, plus a prohibition on a fifth, that no AC of the owning story mentions — the implementer used the prohibited one, every gate went green (the harness stubbed the dependency wholesale, and the stub was reshaped to match the implementation), and semantic review blocked on the prose until the story exhausted rectification
