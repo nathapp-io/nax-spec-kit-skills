@@ -159,6 +159,14 @@ than a missing one — it looks like authorisation and reaches nobody:
   the assertion, and the invariant that replaces it. "update affected tests" is a
   **major** finding on its own: it satisfies the authorisation check while carrying none
   of the information the implementer needs to make the edit correctly.
+- **Each bullet declares exactly one path.** A bullet listing several
+  comma-separated paths authorises only the first: the extractor takes the leading
+  backticked span as the path and folds the remainder — trailing paths included —
+  into the reason string. Count the **paths** in the block, not the bullets, and
+  compare against the number of files the collision sweep says are affected; a
+  shortfall means the extra files reach the implementer only as prose inside a
+  neighbouring reason. **Major**, and the fix is one bullet per file with the
+  shared reason repeated.
 
 An `## Out of Scope` line does **not** clear it: deferring the test update does not stop
 the assertion failing, it only makes the failure expected. Downgrade to **major** solely

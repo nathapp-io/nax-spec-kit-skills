@@ -176,9 +176,13 @@ Estimate AC count and files touched from the intent + design notes. Apply the gu
 > `**US-00N**` lead-in and state the file, the assertion, and the invariant that
 > replaces it — the text is carried **verbatim** into the implementer prompt, so
 > "update affected tests" is a loss, not a summary. An entry with no `**US-00N**`
-> group above it is dropped with a warning. Omitting a needed entry deadlocks the
-> story: a correct implementation fails an old assertion and the implementer's
-> remaining move is to revert. See guide § Context Hints.
+> group above it is dropped with a warning. **Write one file per bullet** — a
+> bullet yields exactly one entry, because the extractor takes the leading
+> backticked path and folds everything after it into the reason, so a
+> comma-separated second path is swallowed and never authorised. Repeat the
+> shared reason per bullet rather than grouping paths. Omitting a needed entry
+> deadlocks the story: a correct implementation fails an old assertion and the
+> implementer's remaining move is to revert. See guide § Context Hints.
 
 **Must split** (lower bound enforcement):
 - More ACs than the `maxAcCount` resolved in Pre-flight step 3 (fallback 15), **counted as assertions, not bullets.** `nax plan` atomically splits a compound AC into one AC per assertion, so 13 bullets can plan to 21 — split them while authoring and the spec count matches the PRD count. Also check description bullets against the resolved `maxBulletPoints`. (See guide § Story Sizing for why.)

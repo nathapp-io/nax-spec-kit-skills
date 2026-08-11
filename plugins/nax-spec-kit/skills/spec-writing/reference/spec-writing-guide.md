@@ -297,6 +297,40 @@ test, the assertion, and the invariant that replaces it. `nax plan` does not
 paraphrase this text and the planner is never asked to produce it — the entire
 point is the specificity that "update affected engine tests" destroys.
 
+**One file per bullet — never comma-separate several paths into one.** A bullet
+yields exactly **one** authorised entry. The extractor takes the *leading*
+backticked span as the path and treats **everything after it** as the reason, so
+a second path in the same bullet is absorbed into that reason string and never
+becomes an entry of its own:
+
+```markdown
+<!-- WRONG — one entry; the other two paths are swallowed into the reason -->
+- `tests/pricing/totals.test.ts`,
+  `tests/pricing/discounts.test.ts`,
+  `tests/pricing/rounding.test.ts` — each pins the old two-argument shape.
+
+<!-- RIGHT — three entries, each independently authorised -->
+- `tests/pricing/totals.test.ts` — pins the old two-argument shape of the
+  price calculator. Replacing invariant: the third argument defaults to the
+  currency's minor unit, so existing two-argument expectations still hold.
+- `tests/pricing/discounts.test.ts` — same two-argument assumption; same
+  replacing invariant.
+- `tests/pricing/rounding.test.ts` — same two-argument assumption; same
+  replacing invariant.
+```
+
+The failure is quiet and survives every green gate: the block still *looks*
+authoritative, the stray paths still appear in the rendered prompt as part of a
+neighbouring reason, and only the first file of each bullet carries a real
+authorisation. Repeating a shared reason across bullets is the correct trade —
+this list is permission, and permission does not deduplicate.
+
+A path repeated under **different** stories is legitimate: each story is
+separately authorised, with its own reason.
+
+Entries are capped (25 at the time of writing). A spec that needs more has a
+scope problem rather than a modification list.
+
 Being listed here is permission, not a task: an implementer touches the file only
 if its change actually requires it. And it is not a substitute for an
 out-of-scope entry — a deferral does not authorise anything.
