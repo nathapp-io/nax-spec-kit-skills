@@ -166,6 +166,27 @@ Checks:
    PRD's last story must be deletion-only (no additive ACs), and its removals must
    carry the build/static-gate verification note — not be re-encoded as
    file-content "does not contain" ACs.
+8. **`Modifies` → `modifiedFiles`, counted by path.** Every path the spec's
+   `### Modifies` block declares must appear as its **own** entry in the owning
+   story's `modifiedFiles`, each with `path` and `reason` populated. Compare
+   **path counts, not bullet counts** — the extractor yields one entry per bullet,
+   taking the leading backticked span as `path` and folding the remainder into
+   `reason`, so a spec bullet listing several comma-separated paths silently
+   authorises only its first. Two tells, both cheap:
+   - an entry whose `reason` **begins with a comma** (or otherwise opens
+     mid-sentence) — the separator strip is anchored, so a swallowed second path
+     leaves the comma behind;
+   - a `modifiedFiles` total lower than the number of distinct paths in the spec
+     block.
+
+   **Major**, not blocker: the stray paths still reach the implementer as prose
+   inside a neighbouring reason, and authorisation is prompt-rendered rather than
+   hard-gated — but the affected files carry no authorisation line of their own,
+   which is precisely the deadlock the block exists to prevent. Remediation is in
+   the **spec** (one bullet per file, shared reason repeated); the PRD's
+   `modifiedFiles` may be patched in place to match, since it is a structural
+   field the planner does not author — verify nothing outside `modifiedFiles`
+   changed before accepting such a patch.
 
 **Blocker:** spec AC missing from PRD; behavioural AC degraded into a
 file-content/grep AC or stripped of its asserted behaviour; meta-AC deleted;
@@ -180,7 +201,9 @@ story's `Context Files` that the PRD dropped from `contextFiles` or mis-moved in
 the consumer's `expectedFiles` (the read hint was lost or corrupted; the run still
 proceeds because the file exists at runtime, so it is a major, not a blocker —
 see §4c); a story-scoped deferral hoisted into `prd.outOfScope` **without** a
-`US-00N only:` prefix (see §6d).
+`US-00N only:` prefix (see §6d); a spec `### Modifies` path that reached no
+`modifiedFiles` entry of its own because its bullet declared several paths
+(see §8).
 
 **Not a finding:** an upstream-produced file correctly **kept** in the consumer
 story's `contextFiles` (it exists at that story's runtime because the producer ran
