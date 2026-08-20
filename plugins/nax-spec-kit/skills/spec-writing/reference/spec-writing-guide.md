@@ -551,6 +551,48 @@ When a feature extends existing code (not greenfield), the Design section **must
 
 Without this, the agent invents its own types and wiring — which won't compile against the existing code.
 
+### State the target shape, not just the baseline
+
+When the Integration list names a symbol the feature **changes**, listing its *current*
+signature is not enough — and on its own is actively harmful.
+
+`nax plan` copies Design prose into each story's `description` and synthesises an
+`**Interface**` block from it. If the only shape you wrote down is the pre-change one, that
+is the shape the planner promotes, and the emitted interface then contradicts the story's own
+acceptance criteria. Reviewers quote the interface block; no test can reach it; the story
+burns rectification attempts and blocks. Note this needs no code fence — a plain bulleted
+list of verified signatures does it.
+
+```markdown
+<!-- WRONG — accurate, honestly labelled, and still becomes the normative interface -->
+### Integration
+
+Signatures verified at `origin/main` (`<sha>`):
+
+- `runJob(self, task, options=None, on_progress=None) -> Result` — `src/runner.py:120`
+```
+
+```markdown
+<!-- RIGHT — the target is stated, so that is what gets promoted -->
+### Integration
+
+This feature changes one call signature. The baseline is stated only to locate the code;
+it is never the interface to implement.
+
+**`runJob`** — `src/runner.py:120` (US-001)
+- Baseline: `runJob(self, task, options=None, on_progress=None) -> Result`
+- Target: the same, plus a trailing keyword-only `mode` parameter.
+
+Symbols this feature reads but does **not** change:
+
+- `Result(status, rows, warnings)` — `src/types.py:40`
+```
+
+Split the list in two: symbols you **change** get a baseline/target pair, symbols you only
+**read** get a single listing. If you would rather not write baselines at all, don't — state
+only the target. The target is the load-bearing half.
+
+
 ## Implementation Approach
 
 The Design section must state **how** the feature works — not just what it does. If the agent has to guess the approach, it will guess wrong.
@@ -594,6 +636,7 @@ Without this, the agent either ignores errors entirely or adds overly defensive 
 | Missing CLI contract | Agent guesses exit codes/output | Specify exit codes, stdout/stderr, output format |
 | No integration context | Agent invents types that don't fit existing code | List exact types/interfaces to extend in Design |
 | Missing implementation approach | Agent guesses wrong method (AST vs LLM vs regex) | State the approach explicitly in Design |
+| Baseline signature with no target | Planner promotes the pre-change shape into the story's interface, contradicting its own ACs | State a Baseline/Target pair, or state only the target |
 | No failure modes | Agent ignores errors or over-blocks | Specify fail-open/closed, retry, error output |
 | Too many stories | Overhead per story; tiny stories are fragile | Target 3-7 stories; merge if <4 ACs each |
 | Integration-only story | Duplicates ACs from earlier stories | Integration behavior belongs in the story that implements it |
