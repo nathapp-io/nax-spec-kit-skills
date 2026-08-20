@@ -85,6 +85,47 @@ Beyond comparing spec to code, also compare spec ACs to spec design within the s
 
 When prose and ACs disagree within the spec, the spec itself is internally inconsistent — flag as **BLOCKER** because the implementer doesn't know which to trust.
 
+### Baseline signature stated without its target (completeness)
+
+The check above catches prose and ACs that **disagree**. This one catches prose that is
+**true and still misleading**: a Design listing of the *current* shape of a symbol the spec
+is about to *change*, with the target shape never stated.
+
+Every such listing passes Phases 1, 2 and 6 — the symbol exists, the shape matches the code,
+the reference is not stale. It still deadlocks the run, because `nax plan` copies Design
+prose into the story's `description` and synthesises an `**Interface**` block from it. Given
+only pre-change signatures, the planner has nothing else to promote, so the block it emits
+carries the **old** shape while the story's own ACs require the new one. The implementer
+writes correct code, the ACs go green, and semantic review quotes the interface block against
+it — a claim that is quotable but reachable by no test, so rectification thrashes until the
+story exits on a bail predicate.
+
+**No code fence is required.** A plain bulleted list under a heading like "Signatures
+verified at `<sha>`" is enough. Accurate, honestly labelled, and normative all the same.
+
+Detection: build the set of symbols the spec **mutates** — anything named in a story's
+`### Modifies`, in `Creates`, or in Design prose saying it gains a parameter, field, variant,
+or return value. For each, scan the Design section for a signature, field list, or shape
+listing of that same symbol. A listing showing only the pre-change shape, with no target
+stated alongside it, is a finding. Checked **per symbol**: a spec that pairs three of five
+mutated symbols leaves two unpinned.
+
+Flag **major** (it predicts non-convergence, not incorrectness).
+
+**Recommended fix:** restate each mutated symbol as an explicit **Baseline:** / **Target:**
+pair, with a lead-in saying the baseline exists only to locate the code and is never the
+interface to implement — or delete the baseline listing entirely. Stating the target is what
+matters; the baseline is optional.
+
+Note the asymmetry with the **unpinned design mandate** check below. That one fires on prose
+naming an API the implementation *must use* and models the same `description`-copying
+mechanism, but a baseline signature is not a mandate — it names no obligation — so it matches
+neither that check nor the disagreement check above. This is the only check that reaches it.
+
+⚠️ **Do not automate this by grepping a generated PRD for baseline fragments.** Unchanged
+parameters legitimately reappear inside the target signature, so their presence proves
+nothing. Read the emitted block; do not pattern-match it.
+
 ### Under-specified input class (completeness)
 
 Beyond prose-vs-AC disagreement, check for **input classes no AC defines**. For any function covered by ≥2 ACs that partition one input dimension (e.g. a return value `true`/`false`, present/absent), ask whether **another meaningful input dimension** is left behaviorally undefined:

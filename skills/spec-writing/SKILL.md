@@ -150,9 +150,11 @@ For each extension touchpoint:
 
 This is a **light symbol audit** — not the full Phase 1 of spec-review. Its purpose is to ensure the Design's Integration block references real symbols with correct signatures, and that novel shapes for new code are paired with worked skeletons.
 
-**Blocker:** named integration point doesn't exist; novel shape proposed without a worked skeleton planned.
+4. **Pair every mutated symbol with its target shape.** Split the Integration block in two: symbols the feature only **reads** get a single verified listing; symbols the feature **changes** get a `Baseline:` / `Target:` pair, under a lead-in saying the baseline exists only to locate the code and is never the interface to implement. A verified pre-change signature listed on its own is promoted by `nax plan` into the story's synthesised `**Interface**` block, where it contradicts that story's own acceptance criteria — no code fence needed. If in doubt, state only the target. See the guide's "State the target shape, not just the baseline".
 
-**Output (written to file):** Design § Integration block filled with verified symbols/signatures and pattern citations. Worked skeletons inserted for novel shapes.
+**Blocker:** named integration point doesn't exist; novel shape proposed without a worked skeleton planned; a symbol the feature changes is listed at its pre-change shape with no target stated.
+
+**Output (written to file):** Design § Integration block filled with verified symbols/signatures and pattern citations, mutated symbols carrying baseline/target pairs. Worked skeletons inserted for novel shapes.
 
 ### Phase 4 — Story decomposition
 
@@ -396,6 +398,7 @@ The skill writes a `SPEC-*.md` matching the guide's structure:
 ## Design
 <from Phase 2 coverage map + Phase 3 grounding>
 ### Integration (if extending)
+<mutated symbols as Baseline/Target pairs; read-only symbols as single listings>
 ### Approach (if multi-implementation)
 ### CLI Behavior (if CLI)
 ### File Format (if new format)
