@@ -180,8 +180,11 @@ Estimate AC count and files touched from the intent + design notes. Apply the gu
 > entry: nested inside a `### Context Files` section the paths are extracted as
 > `contextFiles` (the implementer is told to *read* the test, not that it may
 > change it); under no section at all they extract to nothing. Group entries
-> under a bold `**US-00N**` lead-in and state the file, the assertion, and the
-> invariant that replaces it — the text is carried **verbatim** into the implementer prompt, so
+> under a bold `**US-00N**` lead-in — which must be **ALONE on its line**, since
+> it is matched against the whole line, so a `- ` bullet prefix or any trailing
+> text makes it not a lead-in and the entries beneath attribute to no story. The
+> section sits between `## Stories` and `## Acceptance Criteria`, sibling to
+> `### Seams`. State the file, the assertion, and the invariant that replaces it — the text is carried **verbatim** into the implementer prompt, so
 > "update affected tests" is a loss, not a summary. An entry with no `**US-00N**`
 > group above it is dropped with a warning. **Write one file per bullet** — a
 > bullet yields exactly one entry, because the extractor takes the leading
@@ -434,6 +437,10 @@ The skill writes a `SPEC-*.md` matching the guide's structure:
 
 ## Stories
 <from Phase 4 — 3-7 stories with dependencies; each story carries a single-valued `Workdir: <package path>` when the repo is a monorepo>
+### Context Files / Creates
+<from Phase 4 — per story, under a `**US-00N**` lead-in ALONE on its line>
+### Modifies
+<from Phase 4 — existing files each story may change, under a `**US-00N**` lead-in ALONE on its line; `None.` plus a justification when there are none>
 ### Seams
 <from Phase 4 — cross-story invariants>
 

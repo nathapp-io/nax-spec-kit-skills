@@ -276,7 +276,8 @@ implementation and watches an old assertion fail has two moves left: leave the
 suite red, or revert its change until the assertion passes. The second has been
 observed in the wild. This block is what makes the first unnecessary.
 
-**`Modifies` goes in its own top-level `### Modifies` section — never as a
+**`Modifies` goes in its own top-level `### Modifies` section, sitting between
+`## Stories` and `## Acceptance Criteria` (sibling to `### Seams`) — never as a
 per-story label.** This is the one place the three lists diverge, and it is the
 single most common way an authorisation is lost. `Context Files` and `Creates`
 are commonly written as labels inside a per-story block; writing `Modifies:` the
@@ -322,17 +323,27 @@ so any trailing text defeats it and every entry beneath falls through to the
 previous group — or to no story at all:
 
 ```markdown
-<!-- WRONG — not a lead-in; these entries are attributed to nobody -->
+<!-- WRONG — trailing text; not a lead-in, entries attributed to nobody -->
 **US-001** (greenfield — only creates)
 - `src/a.ts` — reason
 
-<!-- RIGHT — annotate on the next line -->
+<!-- WRONG — a bulleted lead-in; the `- ` prefix defeats the match -->
+- **US-001**
+  - `src/a.ts` — reason
+
+<!-- WRONG — lead-in inline on the bullet; no lead-in line exists at all -->
+- **US-001** `src/a.ts` — reason
+
+<!-- RIGHT — the marker alone, annotation on the next line -->
 **US-001**
 
 _Greenfield — only creates._
 
 - `src/a.ts` — reason
 ```
+
+All three wrong shapes produce `storyId: null`, which is dropped with a warning
+rather than applied. Verified against the real extractor.
 
 The same rule governs `### Context Files`, which shares this grammar. There the
 failure is quieter — an unattributed read is dropped and the planner guesses the
