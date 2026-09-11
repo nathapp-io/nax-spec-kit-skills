@@ -174,9 +174,14 @@ Estimate AC count and files touched from the intent + design notes. Apply the gu
 >
 > **Third list — `Modifies` (→ `modifiedFiles`).** An EXISTING file this story's
 > own correct change necessarily breaks, almost always a test whose closed-world
-> assertion pins a shape the story mutates. Group entries under a bold
-> `**US-00N**` lead-in and state the file, the assertion, and the invariant that
-> replaces it — the text is carried **verbatim** into the implementer prompt, so
+> assertion pins a shape the story mutates. **It is a separate top-level
+> `### Modifies` section, NOT a per-story label alongside `Context Files:` and
+> `Creates:`** — writing it as one looks consistent and silently loses every
+> entry: nested inside a `### Context Files` section the paths are extracted as
+> `contextFiles` (the implementer is told to *read* the test, not that it may
+> change it); under no section at all they extract to nothing. Group entries
+> under a bold `**US-00N**` lead-in and state the file, the assertion, and the
+> invariant that replaces it — the text is carried **verbatim** into the implementer prompt, so
 > "update affected tests" is a loss, not a summary. An entry with no `**US-00N**`
 > group above it is dropped with a warning. **Write one file per bullet** — a
 > bullet yields exactly one entry, because the extractor takes the leading
@@ -184,7 +189,9 @@ Estimate AC count and files touched from the intent + design notes. Apply the gu
 > comma-separated second path is swallowed and never authorised. Repeat the
 > shared reason per bullet rather than grouping paths. Omitting a needed entry
 > deadlocks the story: a correct implementation fails an old assertion and the
-> implementer's remaining move is to revert. See guide § Context Hints.
+> implementer's remaining move is to revert. If nothing needs modifying, write
+> the section anyway and open it with `None.` plus the justification. See
+> guide § Context Hints.
 
 **Must split** (lower bound enforcement):
 - More ACs than the `maxAcCount` resolved in Pre-flight step 3 (fallback 15), **counted as assertions, not bullets.** `nax plan` atomically splits a compound AC into one AC per assertion, so 13 bullets can plan to 21 — split them while authoring and the spec count matches the PRD count. Also check description bullets against the resolved `maxBulletPoints`. (See guide § Story Sizing for why.)
@@ -243,7 +250,7 @@ Propose the story list with dependencies (and per-story `Workdir` when monorepo)
 
 **Blocker:** sizing breach not resolved (over or under); removal keywords present with no terminal-cleanup story planned; new externally-visible symbol without a planned seam AC for its consumer story; a consumer AC that renders/charts/aggregates data absent from the producer contract's declared fields (contract seam); **monorepo detected and any story is missing a `Workdir`, carries more than one package, or names a package path that is not a workspace member**.
 
-**Output (written to file):** Stories section with 3-7 stories, dependency chain, `Context Files` (reads), `Creates` (new files) and `Modifies` (existing files the story is authorised to change) per story, a single-valued `Workdir` per story when the repo is a monorepo, terminal-cleanup story if applicable, and a `### Seams` block listing cross-story invariants.
+**Output (written to file):** Stories section with 3-7 stories, dependency chain, per-story `Context Files` (reads) and `Creates` (new files), a top-level `### Modifies` section grouping existing files each story is authorised to change (or `None.` with a justification), a single-valued `Workdir` per story when the repo is a monorepo, terminal-cleanup story if applicable, and a `### Seams` block listing cross-story invariants.
 
 ### Phase 5 — AC drafting
 
@@ -311,6 +318,24 @@ State the **behaviour**, not the implementation and not the source text. "Symbol
 ### Phase 6 — Self-review handoff
 
 By Phase 6 the target file already contains the complete draft (Phases 1–5 wrote incrementally). This phase performs the final audit by **transitioning to the spec-review skill** — the agent loads spec-review and follows its phases 1-8 against the draft. spec-review is not invoked as a subprocess; it's the next skill the agent runs.
+
+#### Pre-handoff extraction check (run first, when the host supports it)
+
+The draft's `### Modifies`, `### Context Files` and `## Out of Scope` sections are
+read by fixed parsers, and each **fails silently**: a section the parser cannot
+see is not an error, it is simply absent from the PRD. On a nax host project run
+
+```
+nax spec lint <path-to-spec.md>
+```
+
+It runs the real extractors over the draft and exits non-zero exactly when
+`nax plan` would refuse the spec. Fix every `[BLOCK]` finding in-file before
+proceeding; `[warn]` findings are judgement calls. Skip this step if the host has
+no `nax` on PATH or the command is unavailable — the sweep below still runs.
+
+A dropped `Modifies` entry is otherwise findable only by planning the spec and
+diffing the PRD, which is why this runs before the handoff rather than after.
 
 #### Pre-handoff shell sweep (mandatory)
 

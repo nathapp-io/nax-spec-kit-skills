@@ -276,9 +276,67 @@ implementation and watches an old assertion fail has two moves left: leave the
 suite red, or revert its change until the assertion passes. The second has been
 observed in the wild. This block is what makes the first unnecessary.
 
+**`Modifies` goes in its own top-level `### Modifies` section — never as a
+per-story label.** This is the one place the three lists diverge, and it is the
+single most common way an authorisation is lost. `Context Files` and `Creates`
+are commonly written as labels inside a per-story block; writing `Modifies:` the
+same way looks consistent and is silently wrong:
+
+```markdown
+<!-- WRONG — the entry never becomes an authorisation -->
+### Context Files / Creates
+
+**US-001**
+- Context Files:
+  - `src/a.ts` — read this
+- Modifies:
+  - `test/unit/a.test.ts` — its closed-world assertion breaks
+```
+
+Two different failures, depending on what encloses the label:
+
+- **Inside a `### Context Files` section**, as above, the entry is extracted —
+  but as a **`contextFile`**. The implementer is told to *read* the test, not
+  that it may *change* it. Verified: that spec yields `contextFiles` of
+  `src/a.ts` **and** `test/unit/a.test.ts`, and `modifiedFiles` of `[]`.
+- **Under no section at all** — a bare `Modifies:` label in a story block — it
+  matches no section heading and extracts to nothing.
+
+Both produce a PRD that looks healthy on every other axis. Write it as its own
+section instead:
+
+```markdown
+<!-- RIGHT -->
+### Modifies
+
+**US-001**
+- `test/unit/a.test.ts` — its closed-world assertion breaks
+```
+
 Group entries under a bold `**US-00N**` lead-in — that lead-in is what attributes
 the authorisation to a story, and an entry with no group above it is dropped with
-a warning rather than applied to every story:
+a warning rather than applied to every story.
+
+**The lead-in must be ALONE on its line.** It is matched against the whole line,
+so any trailing text defeats it and every entry beneath falls through to the
+previous group — or to no story at all:
+
+```markdown
+<!-- WRONG — not a lead-in; these entries are attributed to nobody -->
+**US-001** (greenfield — only creates)
+- `src/a.ts` — reason
+
+<!-- RIGHT — annotate on the next line -->
+**US-001**
+
+_Greenfield — only creates._
+
+- `src/a.ts` — reason
+```
+
+The same rule governs `### Context Files`, which shares this grammar. There the
+failure is quieter — an unattributed read is dropped and the planner guesses the
+story's context instead — but it is the same mistake.
 
 ```markdown
 ### Modifies
@@ -318,6 +376,26 @@ becomes an entry of its own:
 - `tests/pricing/rounding.test.ts` — same two-argument assumption; same
   replacing invariant.
 ```
+
+**Nothing to modify? Say so — open the section with `None.` and justify it.**
+An absent section and an empty one are indistinguishable to a reader, and a
+linter cannot tell "the author checked and there is nothing" from "the author's
+entries all dropped". The justification is what makes the claim checkable:
+
+```markdown
+### Modifies
+
+None. No existing test pins a closed-world shape this feature changes: every new
+field is optional and absent unless the feature fires, and no test uses
+`toStrictEqual` or a whole-object `toEqual` on the affected DTOs.
+```
+
+**Check it mechanically before planning.** On a nax host project,
+`nax spec lint <spec.md>` runs the real extractors over the draft and reports
+anything that declares intent but extracts nothing — including both wrong shapes
+above. It exits non-zero exactly when `nax plan` would refuse the spec. A dropped
+`Modifies` entry is otherwise findable only by planning the spec and diffing the
+PRD, which is the expensive way to learn it.
 
 The failure is quiet and survives every green gate: the block still *looks*
 authoritative, the stray paths still appear in the rendered prompt as part of a
