@@ -2,11 +2,15 @@
 
 > A complete, guide-conformant worked example. It is intentionally small but
 > exercises every rule the spec-writing guide teaches: the 5 required sections,
-> an Integration block, hard sizing bounds, Context Files per story, a dependency
-> chain, behavioural `[unit]`/`[integration]` ACs, a **seam AC**, and a
+> an Integration block, hard sizing bounds, Context Files per story, a top-level
+> **`### Modifies`** section, a dependency chain, behavioural
+> `[unit]`/`[integration]` ACs, a **seam AC**, and a
 > **terminal-cleanup story** whose removal is verified by the build/static gate
 > (not by an AC). It is language-neutral in intent; the example identifiers happen
 > to be TypeScript.
+>
+> Its paths are fictional, so linting this file against a real repo reports
+> missing-path findings. That is the check working, not a defect in the example.
 
 ## Summary
 
@@ -58,7 +62,10 @@ export class ConfigValidator {
 > `Creates` = new files the story **authors** (do not exist yet → `expectedFiles`).
 > A single path belongs to exactly one list.
 
-**US-001** (greenfield — only creates)
+**US-001**
+
+_Greenfield — only creates._
+
 - Creates:
   - `src/config/types.ts` — where `ValidationResult` is declared
   - `src/config/validator.ts` — core validator
@@ -72,6 +79,22 @@ export class ConfigValidator {
 - Context Files:
   - `src/config/legacy-check.ts` — `checkConfig()` to delete
   - `src/config/loader.ts` — remove the last reference once US-002 lands
+
+### Modifies
+
+> Existing files a story is **authorised to change** (→ `modifiedFiles`).
+> Its own top-level section — **not** a `Modifies:` label inside the block
+> above. Nested there the paths extract as `contextFiles` instead, telling the
+> implementer to *read* the test rather than that it may change it.
+
+**US-002**
+- `test/unit/config/loader.test.ts` — the test named "loadConfig returns the
+  parsed object for any readable file" asserts `loadConfig()` returns the raw
+  object even when `port` is absent. Under US-002 AC 1 that input throws
+  `ConfigError`, so the assertion fails against a correct implementation.
+  US-002 owns updating it to the new invariant: a config missing a required
+  field throws `ConfigError`, and the valid-file case still returns the parsed
+  object unchanged (AC 3).
 
 ### Seams
 

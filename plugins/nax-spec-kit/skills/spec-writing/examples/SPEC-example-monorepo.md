@@ -59,22 +59,46 @@ export class RateLimiter {
 > `Context Files` = existing files to **read**. `Creates` = new files the story
 > **authors**. A single path belongs to exactly one list.
 
-**US-001** (`Workdir: packages/core`, greenfield — only creates)
+**US-001**
+
+_Workdir `packages/core`. Greenfield — only creates._
+
 - Creates:
   - `packages/core/src/rate-limiter.ts` — `RateLimiter` + `RateDecision`
 
-**US-002** (`Workdir: apps/api`)
+**US-002**
+
+_Workdir `apps/api`._
+
 - Context Files:
   - `apps/api/src/pipeline.ts` — `requestPipeline()`; insert the limiter check
   - `packages/core/src/rate-limiter.ts` — created by US-001, consumed here
 
-**US-003** (`Workdir: apps/web`)
+**US-003**
+
+_Workdir `apps/web`._
+
 - Context Files:
   - `apps/web/src/lib/apiClient.ts` — where the response header is read
 
-**US-004** (`Workdir: .`)
+**US-004**
+
+_Workdir `.` — the repo root._
+
 - Context Files:
   - `package.json` — root workspace config; add the default-window entry
+
+### Modifies
+
+> Write the section even when the answer is nothing — an absent section and an
+> empty one read identically, and the justification is what makes the claim
+> checkable.
+
+None. No existing test pins a closed-world shape these stories change: the
+limiter is new (US-001), the pipeline insertion is additive and its existing
+tests assert per-field rather than on a whole response object, and the
+`X-RateLimit-*` headers US-003 reads are new keys on a header map no test
+asserts exhaustively.
 
 ### Seams
 
