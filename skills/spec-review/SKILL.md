@@ -15,6 +15,15 @@ A nine-phase audit that grounds an implementation spec in the actual codebase be
 - In a PR check for any PR that adds or substantially modifies a file under `docs/specs/`
 - Before declaring a spec "ready for implementation"
 
+**Entry condition — the `nax spec lint` stage runs first.** On a nax host project the
+spec should already have passed `nax spec lint <spec.md>`, the pipeline stage between
+`spec-writing` and `spec-review` that checks the machine-extracted sections
+(`### Modifies`, `### Context Files`, `## Out of Scope`) actually extract. If it has
+not — a hand-edited spec, or one that arrived without going through `spec-writing` —
+run it before this audit and fix every `[BLOCK]` finding: those sections fail
+silently, so a codebase audit of a spec `nax plan` would refuse is wasted work. Skip
+the check when `nax` is not on PATH and note the skip in the audit report.
+
 ## When NOT to Activate
 
 - Spec is in active drafting (not yet stable) — review wastes effort

@@ -401,7 +401,10 @@ field is optional and absent unless the feature fires, and no test uses
 `toStrictEqual` or a whole-object `toEqual` on the affected DTOs.
 ```
 
-**Check it mechanically before planning.** On a nax host project,
+**Check it mechanically before planning.** This is the `nax spec lint` stage of
+the spec pipeline — it runs between `spec-writing` and `spec-review` (executed at
+the top of spec-writing Phase 6), and is skipped with a noted warning on hosts
+with no `nax` on PATH. On a nax host project,
 `nax spec lint <spec.md>` runs the real extractors over the draft and reports
 anything that declares intent but extracts nothing — including both wrong shapes
 above. It exits non-zero exactly when `nax plan` would refuse the spec. A dropped

@@ -4,15 +4,22 @@ A Claude Code plugin bundling two complementary skills for spec-driven developme
 
 | Skill | Purpose |
 |:------|:--------|
-| **spec-writing** | Convert brainstorming output into a guide-conformant `SPEC-*.md`. Enforces sizing, behavioral (executable) verification anchors, seams, and terminal-cleanup isolation. |
+| **spec-writing** | Convert brainstorming output into a guide-conformant `SPEC-*.md`. Enforces sizing, behavioral (executable) verification anchors, seams, and terminal-cleanup isolation. Gates the draft through `nax spec lint` before handoff. |
 | **spec-review** | Systematically audit an implementation spec against the actual codebase before handing it to implementers. Catches API hallucination, PRD↔code contradictions, existing-test contract collisions, convention violations, behavioral drift, sizing breaches, and stale references. |
 
 They form a workflow pair:
 
 ```
-brainstorming        → spec-writing             → spec-review        → plan
-(intent exploration)   (intent → SPEC-*.md)       (codebase audit)     (decompose to PRD)
+brainstorming        → spec-writing         → nax spec lint            → spec-review      → plan
+(intent exploration)   (intent → SPEC-*.md)   (machine-extraction gate)  (codebase audit)   (decompose to PRD)
 ```
+
+`nax spec lint` runs inside spec-writing Phase 6, immediately before the
+spec-review handoff. It checks that the draft's machine-extracted sections
+(`### Modifies`, `### Context Files`, `## Out of Scope`) actually extract — they
+fail silently otherwise — and exits non-zero exactly when `nax plan` would refuse
+the spec. On a host with no `nax` on PATH the stage is skipped and the skip is
+noted in the report.
 
 > **Note:** These skills are tuned for nax-style projects — they reference conventions such as `.nax/rules/`, `.claude/rules/`, ADR-009, and `nax plan`. They load the project's rule store(s) dynamically — `.nax/rules/` (nax-native canonical store, higher priority) and `.claude/rules/` — and degrade gracefully on other projects, but some guidance and examples assume the nax workflow.
 
