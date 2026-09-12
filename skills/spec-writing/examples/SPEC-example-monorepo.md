@@ -5,6 +5,12 @@
 > `packages/core`, `apps/api`, and `apps/web`. Every story declares a
 > single-valued `Workdir`; a feature that would span two packages is split into
 > one story per package; a root-only change takes `Workdir: .`.
+>
+> As with the companion, its paths are fictional: linting this file against a
+> real repo reports `context-file-missing` warnings. That is the check working,
+> not a defect in the example. It reports no *blocking* finding only because its
+> `### Modifies` section is an honest `None.` — the companion's populated
+> Modifies section is what trips the blocking path.
 
 ## Summary
 

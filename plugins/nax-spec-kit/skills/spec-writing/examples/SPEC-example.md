@@ -11,6 +11,12 @@
 >
 > Its paths are fictional, so linting this file against a real repo reports
 > missing-path findings. That is the check working, not a defect in the example.
+> Note the `### Modifies` entry reports at **blocking** level
+> (`modifies-path-missing`, exit non-zero) while the Context Files entries only
+> warn — a Modifies path is an authorisation, so one that resolves to nothing
+> authorises nothing. To see the example lint clean, point `-d` at a directory
+> that actually contains its paths:
+> `nax spec lint -d <fixture-root> skills/spec-writing/examples/SPEC-example.md`.
 
 ## Summary
 
