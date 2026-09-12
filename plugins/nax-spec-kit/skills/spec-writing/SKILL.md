@@ -8,7 +8,7 @@ description: Convert brainstorming output into a guide-conformant SPEC-*.md read
 A six-phase drafting protocol that converts brainstorming output into a `SPEC-*.md` satisfying this skill's spec-writing guide. Sits between `brainstorming` (intent exploration) and `spec-review` (audit) in the spec workflow:
 
 ```
-brainstorming        → spec-writing         → nax spec lint          → spec-review      → nax plan
+brainstorming        → spec-writing         → nax spec lint           → spec-review      → nax plan
 (intent exploration)   (intent → SPEC-*.md)   (machine-extraction gate) (codebase audit)   (decompose to PRD)
 ```
 
