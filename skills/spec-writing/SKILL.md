@@ -8,11 +8,16 @@ description: Convert brainstorming output into a guide-conformant SPEC-*.md read
 A six-phase drafting protocol that converts brainstorming output into a `SPEC-*.md` satisfying this skill's spec-writing guide. Sits between `brainstorming` (intent exploration) and `spec-review` (audit) in the spec workflow:
 
 ```
-brainstorming        → spec-writing             → spec-review        → nax plan
-(intent exploration)   (intent → SPEC-*.md)       (codebase audit)     (decompose to PRD)
+brainstorming        → spec-writing         → nax spec lint          → spec-review      → nax plan
+(intent exploration)   (intent → SPEC-*.md)   (machine-extraction gate) (codebase audit)   (decompose to PRD)
 ```
 
-Each phase has a stop-the-line gate — if it produces blockers, the next phase doesn't run until they're resolved. Phase 6 hands the draft to `spec-review`; any spec-review blocker loops back to the owning phase.
+The `nax spec lint` stage runs inside Phase 6, immediately before the `spec-review`
+handoff — it is a distinct stage because it checks something no other stage does:
+whether the draft's machine-extracted sections actually extract. On a host with no
+`nax` on PATH the stage is skipped and the skip is recorded in the final report.
+
+Each phase has a stop-the-line gate — if it produces blockers, the next phase doesn't run until they're resolved. Phase 6 lints the draft and then hands it to `spec-review`; any spec-review blocker loops back to the owning phase.
 
 ## When to Activate
 
@@ -322,7 +327,11 @@ State the **behaviour**, not the implementation and not the source text. "Symbol
 
 By Phase 6 the target file already contains the complete draft (Phases 1–5 wrote incrementally). This phase performs the final audit by **transitioning to the spec-review skill** — the agent loads spec-review and follows its phases 1-8 against the draft. spec-review is not invoked as a subprocess; it's the next skill the agent runs.
 
-#### Pre-handoff extraction check (run first, when the host supports it)
+#### Stage: `nax spec lint` (run first)
+
+This is the pipeline's machine-extraction gate, shown between `spec-writing` and
+`spec-review` in the banner above. It executes here, at the top of Phase 6, so
+that a spec which `nax plan` would refuse never reaches the codebase audit.
 
 The draft's `### Modifies`, `### Context Files` and `## Out of Scope` sections are
 read by fixed parsers, and each **fails silently**: a section the parser cannot
@@ -334,11 +343,15 @@ nax spec lint <path-to-spec.md>
 
 It runs the real extractors over the draft and exits non-zero exactly when
 `nax plan` would refuse the spec. Fix every `[BLOCK]` finding in-file before
-proceeding; `[warn]` findings are judgement calls. Skip this step if the host has
-no `nax` on PATH or the command is unavailable — the sweep below still runs.
+proceeding; `[warn]` findings are judgement calls.
+
+**When `nax` is not on PATH** (or the command is unavailable), skip the stage and
+record the skip as `skipped — nax not on PATH` on the report's **spec lint** line.
+Do not fail the phase: this skill is project-agnostic and the stage is the only
+part of it that requires a nax host. The sweep below still runs.
 
 A dropped `Modifies` entry is otherwise findable only by planning the spec and
-diffing the PRD, which is why this runs before the handoff rather than after.
+diffing the PRD, which is why this stage runs before the handoff rather than after.
 
 #### Pre-handoff shell sweep (mandatory)
 
@@ -455,6 +468,7 @@ After writing, produce a single-message summary to the user:
 
 **Source:** <brainstorm source>
 **Phases run:** 6 of 6
+**spec lint:** <clean / N [BLOCK] findings fixed / skipped — nax not on PATH>
 **spec-review:** <ready / blockers resolved after N iterations>
 
 ## What was drafted
@@ -471,6 +485,7 @@ After writing, produce a single-message summary to the user:
 ...
 
 ## Next step
+`nax spec lint` <passed clean / was skipped — nax not on PATH; run it on a nax host before `nax plan`>.
 Run `spec-review --spec <path>` for a full codebase audit before `nax plan`.
 ```
 
