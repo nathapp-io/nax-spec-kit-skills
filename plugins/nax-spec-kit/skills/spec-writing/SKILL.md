@@ -32,6 +32,7 @@ Each phase has a stop-the-line gate — if it produces blockers, the next phase 
 - User wants codebase audit of an existing spec — use `spec-review` instead
 - User wants to decompose a stable spec into per-story PRD — use the project's planner (e.g. `nax plan`)
 - Spec is for a one-off script with no downstream pipeline (no PRD, no per-story execution) — the guide's structure is overkill; write free-form
+- The request is a feasibility probe ("can we…?") whose output is an answer, not code to keep — investigate and report a recommendation instead (Pre-flight Step 0's Probe path)
 
 ## Red Flags
 
@@ -45,6 +46,7 @@ These thoughts mean stop — you are rationalizing:
 | "Two paths in one Modifies bullet saves space" | The extractor takes only the leading backticked path; the second is swallowed and never authorised. |
 | "The guide says 15 ACs, so 15 is the cap" | The host's `maxAcCount` ranges 6–24 across real projects. Resolve it in Pre-flight and size against that. |
 | "spec-review will catch it downstream" | Phase 6's own sweep is the primary gate; spec-review is defense-in-depth, not a backstop for known debt. |
+| "It grew mid-draft, but I'm nearly done" | The ratchet is one-way: scale discovered mid-draft upgrades the Step 0 classification. Stop, split, re-enter. |
 
 ## Inputs
 
@@ -56,6 +58,19 @@ These thoughts mean stop — you are rationalizing:
 - **Optional:** path to host project's rule store(s) if not auto-discoverable — nax-native `.nax/rules/` and/or Claude `.claude/rules/`
 
 ## Pre-flight
+
+### Step 0 — Triage the intent's scale
+
+One feature = one spec = one PRD — that is the planner's unit of execution, so classify the intent against it before committing to a single spec, and say the classification out loud so the user can override it:
+
+- **Probe** — a feasibility question ("can we…?", "is it possible…?") whose output is an answer, not code to keep. No spec; investigate cheaply and report a recommendation. This skill does not apply.
+- **Bounded** — a single well-scoped change, to existing code or a small greenfield piece (greenfield features often land here at 1–2 stories; see Greenfield specs under Operational rules). A one- or two-story spec is proportionate — proceed to step 1 and size accordingly — or use the one-off-script opt-out under When NOT to Activate.
+- **Feature-sized** — one coherent capability, deliverable in 3–7 stories. Proceed to step 1.
+- **Multi-subsystem** — the intent describes several independently deliverable subsystems. Do **not** draft one spec: the story ceiling would force over-bundling, and the dependency structure between subsystems would never be stated. Decompose into **one feature per subsystem**, state the dependency order between them, confirm the split with the user, then draft the *first* feature's spec through this skill — the rest queue behind it, each with its own spec and PRD.
+
+**One-way ratchet.** Scale discovered mid-draft upgrades the classification — a bounded draft that grows past one story, or a feature whose stories split into two independent arcs, stops where it is: say so, split, and re-enter with the new classification. Nothing downgrades mid-draft.
+
+### Steps 1–3 — Verify input, discover conventions, resolve the size gate
 
 Before Phase 1:
 
