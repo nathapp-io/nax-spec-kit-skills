@@ -115,7 +115,7 @@ Read the brainstorm source. Extract structured fields:
 - **Feature goal** — one sentence: what this does. *(required)*
 - **Motivation** — what's broken / missing / requested. *(required)*
 - **In-scope** — what this spec will deliver. *(required)*
-- **Out-of-scope** — what this spec explicitly defers. *(required)* This is not a
+- **Out-of-scope** — what this spec explicitly defers or prohibits (feature-scoped prohibitions like "do not bump dependency X" route here — guide § Constraint routing). *(required)* This is not a
   throwaway field: it becomes the spec's `## Out of Scope` section, which `nax plan`
   parses into the PRD's `outOfScope` array and copies onto every story — the only
   channel by which a deferred arc reaches an implementer that never sees the spec.
@@ -125,7 +125,7 @@ Read the brainstorm source. Extract structured fields:
   states nothing was deferred, say so explicitly and confirm with the user rather than
   leaving the field blank.
 - **Design decisions already made** — concrete choices (LLM vs AST, sync vs async, schema shape). *(capture if present)*
-- **Constraints** — performance, compatibility, security, deadlines. *(capture if present)*
+- **Constraints** — performance, compatibility, security, deadlines, version floors, dependency bans. *(capture if present — Phase 2 routes each one to a channel; see guide § Constraint routing)*
 - **Naming choices** — type names, function names, file paths. *(capture if present — do not prompt the user to commit to names here; they emerge during Design)*
 - **Extension vs greenfield** — does this modify existing code, or create new modules? Note: many features are **partial extension** (some new code + some existing-code modification) — capture both touchpoints. *(required)*
 - **New package vs in-place (monorepo only)** — if the repo is a workspace monorepo, classify greenfield work as either **new modules inside an existing package** or a **completely new package** (a new workspace member with its own manifest/build). This drives the scaffolding gate below. *(required when the repo is a monorepo)*
@@ -169,7 +169,9 @@ Also detect **conditional sub-sections** from the guide and check each:
 
 For each missing sub-section the spec requires, ask the user one focused question. Batch the questions in a single prompt to minimise round-trips.
 
-**Blocker:** any required sub-section is `missing` and the user hasn't answered the corresponding question.
+Also **route every constraint captured in Phase 1** — the guide's § Constraint routing table is the SSOT: a feature-scoped prohibition → a `## Out of Scope` bullet; a testable behaviour → an AC in its owning story (drafted in Phase 5); an authorisation to break an existing assertion → a `### Modifies` entry (drafted in Phase 4); a repo-wide, feature-transcending convention → the project rule store (propose that edit to the user — it outlives this feature — and leave a one-line pointer in Design naming the rule file; if the user declines, fall back to an `## Out of Scope` bullet). Record the chosen route per constraint — Phase 6's sweep re-reads the routes and blocks on any not materialized. A constraint left as Design prose reaches the implementer only through planner paraphrase — the same loss mode as an unextracted deferral.
+
+**Blocker:** any required sub-section is `missing` and the user hasn't answered the corresponding question; a Phase 1 constraint routed to no channel (guide § Constraint routing).
 
 **Output (written to file):** Design section scaffolded with required sub-sections (Integration / Approach / CLI Behavior / File Format / Failure Handling as applicable). Content is drafted from brainstorm + user answers; the Integration block is left as a placeholder if the feature touches existing code, to be filled by Phase 3.
 
@@ -401,6 +403,10 @@ Banned tokens (treat each hit as a blocker):
 For each hit, rewrite the AC into the runtime behaviour it is meant to prove, using the conversion table in §Nax-friendly AC format above (or move a removal/absence claim to the story's build/static-gate verification note). Re-grep until zero hits remain.
 
 **Why this blocks:** nax has no shell executor — an implementation session writes a failing test and makes it pass, so a file-content / shell AC is not implementable (see the guide's anti-pattern table). Catching it here saves a planner round-trip; spec-review Phase 7/9 are defense-in-depth.
+
+#### Constraint-route materialization (same gate)
+
+Re-read the routes recorded in Phase 2. Each routed constraint must now exist at its destination: the `## Out of Scope` bullet present, the AC drafted, the `### Modifies` entry written, or the rule-store edit made with its one-line Design pointer. A route recorded and never materialized is a **blocker** — fix in-file before handoff. This is the silent loss the routing step exists to prevent; do not leave it for spec-review's Step 8c.
 
 #### Placeholder-sentinel sweep (same gate, second list)
 

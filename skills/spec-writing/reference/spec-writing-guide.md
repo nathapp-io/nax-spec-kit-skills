@@ -83,6 +83,38 @@ does, but there is no backfill, and the adversarial reviewer only ever sees
 `story.outOfScope`. If the planner omits it, the property you thought you deferred is
 silent again — the exact condition Rule 10 exists to prevent.
 
+### Constraint routing — every constraint names its channel
+
+A constraint captured during intake — a version floor, a dependency ban, a
+naming/copy rule, "no schema migration" — is normative only if it reaches the
+implementer, and the implementer receives only a story. Design prose reaches a
+story solely through planner synthesis (paraphrase, no survival guarantee), and
+the extractors are shape-closed, so inventing a dedicated spec section for
+constraints yields a section the planner silently ignores. Route each constraint
+to the channel that actually carries it:
+
+| Constraint kind | Route to | Why it survives |
+|:---|:---|:---|
+| Prohibition scoped to this feature ("do not bump dependency X", "no schema migration here") | `## Out of Scope` bullet | machine-extracted, verbatim-backfilled, copied onto every story |
+| Testable behaviour ("timeout defaults to 30") | an AC in the owning story | becomes the story's failing-test input |
+| Authorisation to break an existing assertion | `### Modifies` entry | the only channel granting test-edit permission; the reason travels verbatim |
+| Repo-wide convention that outlives the feature (naming, version floors, banned APIs) | the project rule store (`.nax/rules/*.md`, or `.claude/rules/`) | loaded into every session by the context engine, independent of this spec |
+
+Routing is **per constraint** — one intake sentence can carry two constraints
+with two different routes. A constraint that names a specific API the
+implementation must call is Rule 12's territory (unpinned design mandate: pin it
+as an AC, soften it, or release it); this table covers constraints that name no
+code symbol, which Rule 12 never reaches.
+
+Two mechanics for the rule-store route. **(1) Leave a pointer in the spec** — a
+one-line Design note ("convention routed to `<rules file>`"). The rule file is
+the enforcing home; the pointer is what lets a reviewer verify the route without
+leaving the spec, and without it the route is indistinguishable from an unrouted
+constraint. **(2) The route needs the user's yes** — editing the rule store is a
+repo change that outlives the feature, so propose it; if declined, fall back to
+a `## Out of Scope` bullet so the constraint still reaches every story of *this*
+feature.
+
 So for a risk property you are deferring: keep the story-local block (spec-review Phase 4
 reads it), and **if an adversarial reviewer would plausibly block on the property, also
 add a feature-level bullet naming the story** — `- US-002 only: write-back atomicity is
