@@ -61,6 +61,12 @@ One trap: `None.` / `N/A` / `TBD` are filtered as "nothing deferred", but
 `Nothing is deferred.` is not — it becomes a real entry rendered to every implementer as
 a hard boundary. Write a bare `None.`
 
+A second trap: the extractor does **not** strip HTML comments. A `<!-- … -->` block
+trailing the section's last bullet is absorbed into that entry and reaches every
+implementer fused onto a real exclusion — and `nax spec lint` passes it clean. Keep
+HTML comments (annotations, drafting markers) **above the document's first heading**,
+the only region nothing parses, and hand off a finished spec with none at all.
+
 **Feature-level vs story-level — where you put it decides what it means.**
 
 `nax plan` extracts a declaration into `prd.outOfScope` (and copies it onto *every*

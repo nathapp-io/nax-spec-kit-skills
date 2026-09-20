@@ -1,3 +1,11 @@
+<!--
+Note what this example deliberately does NOT contain:
+- No `[verbatim]` / `[grep]` / `[file]` ACs.
+- No "file X contains Y" / "grep returns 0" assertions.
+- The removal in US-003 is a verification note + a behavioural capability-preserved
+  AC, never a "no file contains checkConfig" AC.
+-->
+
 # SPEC: Config Schema Validation
 
 > A complete, guide-conformant worked example. It is intentionally small but
@@ -133,11 +141,3 @@ the compiler rejects any remaining references to the deleted `checkConfig`.
 - [integration] config validation previously provided by `checkConfig()` is now
   exercised through `loadConfig()`: loading a file missing `port` throws
   `ConfigError` (capability preserved after the removal).
-
-<!--
-Note what this example deliberately does NOT contain:
-- No `[verbatim]` / `[grep]` / `[file]` ACs.
-- No "file X contains Y" / "grep returns 0" assertions.
-- The removal in US-003 is a verification note + a behavioural capability-preserved
-  AC, never a "no file contains checkConfig" AC.
--->

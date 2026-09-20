@@ -1,6 +1,6 @@
 ---
 name: spec-writing
-description: Convert brainstorming output into a guide-conformant SPEC-*.md ready for spec-review. Bridges open-ended ideation and structured spec authoring. Invoke when user says "draft the spec", "write SPEC-X.md", "convert this brainstorm into a spec", or `/spec-writing <source>`. Enforces sizing, behavioral (executable) verification anchors, seams, terminal-cleanup isolation. ACs are real runtime test cases — never grep/file-content assertions. Project-agnostic and language-agnostic.
+description: Convert brainstorming output into a guide-conformant SPEC-*.md ready for spec-review. Invoke when the user says "draft the spec", "write SPEC-X.md", "convert this brainstorm into a spec", or `/spec-writing <source>`, or when a stable intent needs a structured spec before planning. Assumes intent is stable — if still exploring, run brainstorming first. Project-agnostic and language-agnostic.
 ---
 
 # Spec Writing Skill
@@ -32,6 +32,19 @@ Each phase has a stop-the-line gate — if it produces blockers, the next phase 
 - User wants codebase audit of an existing spec — use `spec-review` instead
 - User wants to decompose a stable spec into per-story PRD — use the project's planner (e.g. `nax plan`)
 - Spec is for a one-off script with no downstream pipeline (no PRD, no per-story execution) — the guide's structure is overkill; write free-form
+
+## Red Flags
+
+These thoughts mean stop — you are rationalizing:
+
+| Thought | Reality |
+|---------|---------|
+| "The intent is obvious, skip the Phase 1 field confirmation" | Misread intent is cheapest to fix before drafting. Required fields block for a reason. |
+| "The `[unit]` tag makes the mechanism clear" | The planner strips tags from ~97% of ACs. The mechanism must be legible from the AC's prose alone. |
+| "'Update affected tests' covers the Modifies entry" | The reason text is carried verbatim into the implementer prompt. A summary destroys the authorisation's specificity. |
+| "Two paths in one Modifies bullet saves space" | The extractor takes only the leading backticked path; the second is swallowed and never authorised. |
+| "The guide says 15 ACs, so 15 is the cap" | The host's `maxAcCount` ranges 6–24 across real projects. Resolve it in Pre-flight and size against that. |
+| "spec-review will catch it downstream" | Phase 6's own sweep is the primary gate; spec-review is defense-in-depth, not a backstop for known debt. |
 
 ## Inputs
 
@@ -75,6 +88,8 @@ Phase outputs accumulate into the target spec file. At the end of each phase, th
 ```html
 <!-- spec-writing: completed-through-phase-<N> -->
 ```
+
+**The marker is the FIRST line of the file, above the `# SPEC:` heading — never at the end.** A trailing HTML comment is absorbed into `Out of Scope` extraction, lint-clean (see the guide's `## Out of Scope` traps); the region above the first heading is the only safe home. Phase 6 deletes the marker on a clean pass, so a finished spec carries no HTML comment at all.
 
 This enables re-entry: if the user interrupts after Phase 3, the file on disk has the Summary, Motivation, and Design (Integration only) sections plus the phase marker. Re-invoking the skill reads the marker and resumes from the next phase.
 
@@ -382,7 +397,7 @@ Do **not** invoke spec-review's Phase 9 (PRD fidelity) — there is no PRD yet. 
 
 **Blocker:** spec-review reports unresolved blockers after 2 passes.
 
-**Output (written to file):** Spec file unchanged from Phase 5 if spec-review passed; otherwise updated with whichever blockers were fixed in pass 1. The phase marker is updated to `completed-through-phase-6` only if spec-review passed clean; otherwise it stays at `phase-5` so re-entry knows the audit is unresolved.
+**Output (written to file):** Spec file as at Phase 5 with the phase marker **removed**, if spec-review passed clean — the handed-off spec carries no HTML comment (see the marker-placement rule under Workflow). Otherwise the file is updated with whichever blockers were fixed in pass 1 and the marker stays at `phase-5` so re-entry knows the audit is unresolved.
 
 ## Operational rules
 
@@ -400,7 +415,7 @@ Phases 1, 2, 4 routinely require user input. Batch questions per phase — never
 
 ### Re-entry
 
-Each phase writes the target file at completion and updates the phase marker comment:
+Each phase writes the target file at completion and updates the phase marker comment on the file's **first line** (see the Workflow section for why the placement is load-bearing):
 
 ```html
 <!-- spec-writing: completed-through-phase-<N> -->
@@ -409,9 +424,8 @@ Each phase writes the target file at completion and updates the phase marker com
 If the user re-invokes the skill on a path that already exists:
 
 1. Read the file. Grep for the phase marker.
-2. If marker is `completed-through-phase-6` and spec-review passed: the spec is done. Confirm with the user whether to re-run from scratch or treat as a no-op.
-3. Otherwise: resume from `<N>+1`. The earlier sections are treated as already-drafted (do not re-prompt for Phase 1 fields the user has already answered).
-4. If the file has no phase marker: treat as a hand-edited spec, not a partial skill run. Offer to run spec-review instead, or to restart from Phase 1 with the existing content as a "brainstorm source."
+2. If a marker is present: resume from `<N>+1`. The earlier sections are treated as already-drafted (do not re-prompt for Phase 1 fields the user has already answered). A marker never reads `phase-6` — Phase 6 deletes it on a clean pass.
+3. If the file has no phase marker: it is either a completed skill run or a hand-edited spec — indistinguishable by design, and handled the same way. Offer to run spec-review, or to restart from Phase 1 with the existing content as a "brainstorm source."
 
 ### Greenfield specs
 
@@ -425,7 +439,7 @@ When the intent is dominated by deletions (consolidation specs, dead-code cleanu
 
 ## Output format
 
-The skill writes a `SPEC-*.md` matching the guide's structure:
+The skill writes a `SPEC-*.md` matching the guide's structure. (During Phases 1–5 the phase marker occupies line 1, above the `# SPEC:` heading; Phase 6 removes it, so the finished shape below carries none.)
 
 ```markdown
 # SPEC: <Feature Name>

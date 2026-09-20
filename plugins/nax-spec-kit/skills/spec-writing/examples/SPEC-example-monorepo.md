@@ -1,3 +1,13 @@
+<!--
+Monorepo-specific points this example demonstrates:
+- Every story has a single-valued `Workdir` matching a real workspace member.
+- A would-be two-package story is split per package (US-002 api / US-003 web),
+  not collapsed into one multi-package story.
+- A root-only change uses `Workdir: .`.
+- A file produced by an upstream story (US-001's rate-limiter.ts) is a legitimate
+  read in the consumer's `Context Files`, annotated with its producer.
+-->
+
 # SPEC: Per-Tenant Rate Limiting (monorepo variant)
 
 > A short companion to [SPEC-example.md](SPEC-example.md) that exercises the
@@ -135,13 +145,3 @@ asserts exhaustively.
 ### US-004: Default window in workspace config (`Workdir: .`)
 - [unit] `RateLimiter` constructed with no explicit window resolves its window to
   the default declared in the workspace-root config.
-
-<!--
-Monorepo-specific points this example demonstrates:
-- Every story has a single-valued `Workdir` matching a real workspace member.
-- A would-be two-package story is split per package (US-002 api / US-003 web),
-  not collapsed into one multi-package story.
-- A root-only change uses `Workdir: .`.
-- A file produced by an upstream story (US-001's rate-limiter.ts) is a legitimate
-  read in the consumer's `Context Files`, annotated with its producer.
--->
