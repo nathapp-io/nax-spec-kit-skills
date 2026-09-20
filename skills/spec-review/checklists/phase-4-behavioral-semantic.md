@@ -128,16 +128,57 @@ nothing. Read the emitted block; do not pattern-match it.
 
 ### Under-specified input class (completeness)
 
-Beyond prose-vs-AC disagreement, check for **input classes no AC defines**. For any function covered by ≥2 ACs that partition one input dimension (e.g. a return value `true`/`false`, present/absent), ask whether **another meaningful input dimension** is left behaviorally undefined:
+Beyond prose-vs-AC disagreement, check for **input classes no AC defines**.
+
+**Enumerate before you judge.** Do not scan the ACs and ask what looks missing — that finds
+only the dimensions the spec already put in your head. For each function the story covers,
+first write down its input dimensions from the *signature and the domain*, independent of
+the ACs; only then mark which are pinned. The recurring axes:
 
 - sync factory vs **async** (`Promise`-returning) factory
 - value present vs **absent/null/undefined**
 - valid input vs **malformed** input
 - single item vs **empty** collection vs **many**
+- a text body **with** vs **without** a trailing newline (and an empty body)
+- each threshold, limit or ceiling the function names — one dimension per threshold
 
 If a class is exercised by no AC's test **and** not listed in the spec's **Out-of-scope**, flag **MAJOR**. Undefined-but-plausible input classes are where the semantic and adversarial reviewers over-interpret in *contradictory* directions at implementation time: the fix for one re-triggers the other, rectification exits `regressed-different-source`, and the story escalates tiers without converging (real case: `notif-dlq-hardening` — AC3/AC4 pinned sync-factory behavior but left async factories undefined; semantic demanded async-true→wire-DLQ while adversarial demanded async-false→throw, an unsatisfiable pair given synchronous module construction).
 
 **Recommended fix:** add an AC pinning the class's behavior, **or** move it to Out-of-scope. Never leave it silent for the reviewers to arbitrate.
+
+### Undefined dimension interaction (completeness)
+
+The check above asks whether a dimension is **missing**. This one asks what happens when two
+dimensions that are each **present** fire at the same time.
+
+It is the more dangerous of the two, because the spec looks complete on inspection: every
+axis has an AC, the coverage sweep passes, and the undefined region is the *cross-product
+cell* nobody wrote down. Reviewers then arbitrate that cell in incompatible directions, and
+each fix breaks the test written for the other reading.
+
+Detection: build the set of **thresholds, limits, modes and branches** a single function
+declares, where a separate AC pins each one in isolation. For every pair, ask whether any AC
+or Out-of-scope entry says what happens when **both** apply to one input. Checked **per
+pair**: a function with three thresholds has three pairs plus the all-three case, and pinning
+two of them leaves the rest open.
+
+Flag **major**, escalating to **blocker** when the ACs are not merely silent but
+*jointly unsatisfiable* — i.e. two ACs read literally demand opposite outputs for the same
+input. Silence is a deadlock risk; contradiction is a guaranteed one.
+
+Worked example. A truncation function declared three independent ceilings — a byte cap, a
+line-count cap and a per-line character cap — each pinned by its own AC, and none of the
+ACs, nor any Out-of-scope entry, said which wins when a body breaks more than one. Coverage
+was complete. At implementation time semantic review read the per-line AC literally ("a long
+line must always be shortened") while adversarial read the line-count AC literally ("the line
+ceiling binds even when the per-line path triggers"); each fix broke a test written for the
+other. Three rectification iterations returned `regressed-different-source` with the finding
+relocating each time, the story exhausted two model tiers, and the run was killed by hand.
+
+**Recommended fix:** state the composition explicitly — usually an *ordered pipeline* ("cap
+A applies first, then B over its output, then C last") rather than a set of alternatives —
+and add one AC per interaction the order makes observable. "They are independent" is not an
+answer; independence still has to say what the output looks like when two fire.
 
 ### Unpinned failure-handling row (completeness)
 
@@ -205,6 +246,41 @@ Ask the question in this direction — *"what does the described procedure produ
 — and only then compare to the claim. Reading the claim first primes you to accept
 it.
 
+### Constant-value derivability (satisfiability)
+
+The same reasoning, one level over: a **named constant or threshold** an AC's behaviour
+depends on, whose value the spec never states and never explicitly delegates.
+
+Phase 1 passes these legitimately — a constant declared under `### Creates` ("…and its
+constants") is a forward-reference, and no phase asks whether a value follows. So the
+implementer picks the numbers, and the reviewer judges the result against whatever numbers
+*it* would have picked.
+
+| Outcome | Action |
+|:---|:---|
+| Value stated, or explicitly delegated ("the implementer chooses; any value satisfying X") | ✅ pass |
+| AC behaviour depends on the constant and the spec states no value and delegates nothing | ❌ **BLOCKER** — underivable |
+| Several constants bound the same quantity and the spec states no relation between them | ❌ **BLOCKER** — see below |
+
+The second row matters most when constants interact. Values that are each individually
+plausible can be **jointly degenerate**: they can make one cap unreachable by any input that
+satisfies the others, so a whole branch of the ACs is untestable and every boundary case
+trips two caps at once. Whoever picks the values will not notice — the breach is a property
+of the *combination*, and it does not exist until the last one is chosen.
+
+Worked example. A spec named `MODEL_MAX_BYTES`, `MODEL_MAX_LINES` and `MODEL_MAX_LINE_CHARS`
+and gave no values. The implementer chose 40_000, 2 and 2_000. The largest body satisfying
+the two line caps is then 4,001 bytes (two 2,000-char lines and one separator) — well under
+the 40,000-byte ceiling — so no compliant body can reach the byte cap, no test can isolate
+it, and the test-writer had to invent a resolution the reviewers then rejected. Had the spec
+stated the relation `MODEL_MAX_LINES * (MODEL_MAX_LINE_CHARS + 1) > MODEL_MAX_BYTES` — an
+upper bound on the largest compliant body, since `n` lines carry `n - 1` separators — the
+constraint would have been checkable before any code was written.
+
+**Recommended fix:** state each value in the spec, or delegate it explicitly. Where several
+constants bound one quantity, state the **relation** that keeps them mutually satisfiable —
+that relation is reviewable even when the individual values are left to the implementer.
+
 ## Step 6 — Reality of "shipped" claims
 
 When the spec says "X is already shipped" or "DONE", open the referenced file and verify it actually does what the spec claims. Just because a file exists doesn't mean its behavior matches the claim.
@@ -249,4 +325,7 @@ Run this check by:
 - IAM-store story with 7 happy-path passthrough ACs and no atomicity/replay/tenancy AC or out-of-scope declaration — adversarial reviewer blocked ~18 rounds on the silent properties
 - Reserve-then-finalize store whose `Out of scope` defers tenancy + eviction but never names the finalize write-back's atomicity — the present-but-partial deferral that still deadlocks, because coverage must be per-property
 - A `### Failure Handling` row ("warn and skip an unmarked position") with no covering AC and no out-of-scope entry — the planner writes the AC instead, in its own words, with no locus token
+- A truncation function with three ceilings — bytes, line count, per-line chars — each pinned by its own AC, and nothing saying which applies when a body breaks two: coverage complete, cross-product cell undefined, semantic and adversarial then demanded opposite outputs and the story burned two model tiers
+- A spec naming `MODEL_MAX_BYTES` / `MODEL_MAX_LINES` / `MODEL_MAX_LINE_CHARS` with no values: the implementer's 40_000 / 2 / 2_000 made the byte ceiling unreachable by any body satisfying the line caps, so one cap's ACs were untestable and every boundary case tripped two at once
+- A text-truncation spec that never says whether a trailing newline terminates the last line or opens an empty one — the plainest kind of undefined input class, missed because the dimensions were never enumerated before the ACs were read
 - A Design "Library APIs used:" list naming four dependency methods, plus a prohibition on a fifth, that no AC of the owning story mentions — the implementer used the prohibited one, every gate went green (the harness stubbed the dependency wholesale, and the stub was reshaped to match the implementation), and semantic review blocked on the prose until the story exhausted rectification
