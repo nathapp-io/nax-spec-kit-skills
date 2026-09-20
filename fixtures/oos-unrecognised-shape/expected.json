@@ -1,0 +1,1 @@
+{ "mustFire": ["oos-unrecognised-shape"], "description": "Deferral prose present but the section title is one the extractor does not recognise — silently dropped from prd.outOfScope." }

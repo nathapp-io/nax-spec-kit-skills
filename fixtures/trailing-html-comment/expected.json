@@ -1,0 +1,1 @@
+{ "mustFire": ["trailing-html-comment"], "description": "Re-entry marker left at end of file — absorbed into Out-of-Scope extraction, lint-clean." }

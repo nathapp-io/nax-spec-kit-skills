@@ -1,0 +1,1 @@
+{ "mustFire": ["oos-unrecognised-shape"], "description": "Inline Out-of-scope lead-in appears only AFTER the story boundary — story-scoped, so the feature-level deferral still reaches no story; must fire." }
