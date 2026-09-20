@@ -5,7 +5,7 @@ description: Use this skill to systematically review an implementation spec agai
 
 # Spec Review Skill
 
-A nine-phase audit that grounds an implementation spec in the actual codebase before any code is written, and (when a PRD is present) verifies the spec→PRD transformation preserved load-bearing assertions. Each phase has a stop-the-line gate — if it produces blockers, the next phase doesn't run until they're resolved.
+A nine-phase audit that grounds an implementation spec in the actual codebase before any code is written, and (when a PRD is present) verifies the spec→PRD transformation preserved load-bearing assertions. Each phase has a stop-the-line gate — if it produces blockers, the next phase doesn't run until they're resolved. Phase 4 is the one exception: it runs even when an earlier phase halted, because its deadlock-class checks read the spec against itself.
 
 ## When to Activate
 
@@ -101,9 +101,11 @@ See [checklists/phase-4-behavioral-semantic.md](checklists/phase-4-behavioral-se
 | P4.9 | Fixture-shape derivability | an AC asserting a fixture property that does not follow from the spec's stated generation procedure, or that the spec never says how to build | per asserted property | blocker |
 | P4.10 | Constant-value derivability | a constant an AC's behaviour depends on, with no value stated and none explicitly delegated; or several constants bounding one quantity with no stated satisfiability relation | per constant / per relation | blocker |
 | P4.11 | Shipped-claim reality | "already shipped" / "DONE" code whose main functions have zero callers outside the defining file — ships in name only (caller reachability; contradiction with observable git state is Phase 6's blocker, a different check) | per claim | major |
+| P4.12 | Per-story deadlock roll-up **(runs at report assembly, after the last phase that ran — not in Phase 4 sequence)** | every deadlock-class finding above (P4.2, P4.4, P4.5, P4.7, P4.8, P4.9, P4.10) plus Phase 5's unnamed `add validation`/`add error handling` (`P5-ph`) and Phase 8's over-rich AC noun (`P8-noun`), re-keyed by owning story | per story | verdict only — never raises or lowers an individual finding's severity |
 
 **Blocker:** a P4.1 decision-logic mismatch downstream code depends on; any P4.2 mismatch; P4.9 or P4.10 underivability; a P4.5 pair whose ACs are jointly unsatisfiable.
 **Major:** every other finding in the table, except where the checklist grades a case lower (P4.1's cosmetic prose drift is minor).
+**Per-story verdict (P4.12):** ❌ DEADLOCK LIKELY on any deadlock-class finding graded blocker by its owning phase; ⚠️ AT RISK on two or more findings of distinct IDs, or on one finding in a risk-sensitive story; ✅ CLEAR only when the story has none **and** every applicable deadlock-class check reported a denominator for it; ⚠️ AT RISK otherwise — the ladder has no ungraded case. The checklist's Step 7 owns the attribution rules, the `n/a` vs `not run` distinction, and the fix guidance.
 
 ### Phase 5 — Sizing & hygiene
 
@@ -227,6 +229,12 @@ For each function signature, locate the actual signature and diff:
 
 After each phase, if there are blockers, halt and produce the partial report. Do not continue to subsequent phases — they may produce false positives based on incorrect spec claims that subsequent revisions will fix.
 
+**Phase 4 is exempt from the halt, in both directions.** When Phases 1–3 raise blockers, run Phase 4 anyway before producing the partial report; when Phase 4 itself raises blockers, still complete it (including the `P4.12` roll-up) before halting.
+
+The rationale for halting does not apply to Phase 4. Its deadlock-class checks (`P4.2`, `P4.4`, `P4.5`, `P4.7`–`P4.10`) read the spec **against itself** — AC against AC, AC against Design prose, AC against the spec's own stated generation procedure — so a stale symbol name or a drifted signature from Phases 1–3 cannot make them false-positive. `P4.1` and `P4.11` *are* codebase-relative and can be noisy on a spec with blockers; report those two with the caveat that they were run over unverified claims, or defer them to the re-review.
+
+Without this exemption the specs most likely to deadlock are the ones that never get a deadlock reading: a single missing symbol in Phase 1 halts the run, the author fixes the symbol, and the undefined cross-product cell in `US-003` survives into the run untouched.
+
 ## Output format
 
 Produce a single markdown report:
@@ -237,13 +245,28 @@ Produce a single markdown report:
 **Date:** <YYYY-MM-DD>
 **Phases run:** <N of 9> (<reason if halted>; phases 7-9 conditional — see Workflow)
 **Verdict:** ✅ ready / ⚠️ revisions needed / ❌ major rework
+**Deadlock risk:** <N stories ❌ deadlock likely, M ⚠️ at risk, K ✅ clear — omit this line when Phase 4 did not run>
 
 ## Summary
 - Phase 1: <items examined, e.g. "47 symbols + 3 data literals"> — <N blockers, M majors, K minors>
 - Phase 2: <shape claims verified + mutated shapes swept for closed-world assertions> — <...>
 - Phase 3: <rule files loaded + spec code blocks checked> — <...>
-- Phase 4: <per check P4.1–P4.11, each with its unit-of-account count> — <...>
+- Phase 4: <per check P4.1–P4.12, each with its unit-of-account count> — <...>
 - ...
+
+## Deadlock Risk — per story
+
+| Story | Contradictions (P4.2) | Silent classes (P4.4) | Unpinned pairs (P4.5) | Unpinned mandates (P4.7) | Risk properties (P4.8) | Underivable (P4.9/10) | Other (P5-ph/P8-noun) | Verdict |
+|:--|:--|:--|:--|:--|:--|:--|:--|:--|
+| US-001 | 0/6 | 0/3 | 0/1 | 0/2 | n/a | 0/4 | 0/5 · n/a | ✅ CLEAR |
+| US-002 | 0/4 | 1/3 | 0/0 | 0/1 | n/a | 0/2 | 0/3 · n/a | ⚠️ AT RISK |
+| US-003 | 0/9 | 1/4 | 2/3 (1 blocker) | 3/4 | n/a | 0/0 | 0/7 · n/a | ❌ DEADLOCK LIKELY |
+| — (feature) | 0/2 | n/a | n/a | n/a | n/a | n/a | 0/1 · n/a | ✅ CLEAR |
+
+**US-003 — ❌ DEADLOCK LIKELY**
+- P4.5 (blocker) — `truncate()` byte cap vs per-line cap, § Design line 88 — see Phase 4
+- P4.7 — `renderSeries()` mandated, no AC names it, § Design line 94 — see Phase 4
+...
 
 ## Phase 1 — Symbol Existence
 
@@ -270,9 +293,19 @@ Each finding must include:
 3. **Codebase reality** — what was found (or not) and where
 4. **Recommended fix** — one sentence, actionable
 
+### Deadlock risk table (mandatory when Phase 4 ran)
+
+Assembled last, after the final phase that ran — `P4.12` consumes Phase 5 and Phase 8 findings, so it cannot be produced in Phase 4 sequence.
+
+The table is keyed by story, in dependency order, with a final `— (feature)` row for findings that belong to no single story. Each cell carries `found/examined` in that check's unit of account. Use `n/a` where the check does not apply to the story, or where its owning phase's trigger conditions were not met (Phase 8 on a spec that exports nothing new) — `n/a` is compatible with ✅ CLEAR. Use `not run` only for a phase halted, or skipped while it applied; a `not run` cell means the surface exists and was not examined, and the story drops to ⚠️ AT RISK.
+
+Each non-clear row is followed by one line per contributing finding — check ID, one-line subject, spec reference, and a pointer to the phase section. The finding itself is written once, in its phase section; these lines are pointers, not duplicates.
+
+The roll-up never raises or lowers an individual finding's severity, and a ✅ CLEAR story does not soften the overall verdict. See the Phase 4 checklist's Step 7 for the attribution rules and the full verdict ladder.
+
 ### Evidence discipline (mandatory)
 
-Every phase line in the Summary carries the count of items it examined, in that phase's unit of account: symbols and data literals (Phase 1); shape claims verified and mutated shapes swept (Phase 2); rule files loaded and code blocks checked (Phase 3); per-`P4.n` items (Phase 4 — claims, mutated symbols, dimensions, pairs, rows, named APIs, properties, constants); stories, ACs, channel-reaching surfaces, and constraints swept (Phase 5); shipped/DONE/MODIFY-additive claims (Phase 6); ACs classified (Phase 7); seams and removal keywords walked (Phase 8); spec↔PRD AC matches, file-role entries, and forward-references re-swept (Phase 9). A finding count without a denominator is not evidence of a clean phase — "0 blockers" over an unstated sample is indistinguishable from a thorough pass, and the checks most worth gaming are exactly the per-item ones.
+Every phase line in the Summary carries the count of items it examined, in that phase's unit of account: symbols and data literals (Phase 1); shape claims verified and mutated shapes swept (Phase 2); rule files loaded and code blocks checked (Phase 3); per-`P4.n` items (Phase 4 — claims, mutated symbols, dimensions, pairs, rows, named APIs, properties, constants, and stories for the `P4.12` roll-up); stories, ACs, channel-reaching surfaces, and constraints swept (Phase 5); shipped/DONE/MODIFY-additive claims (Phase 6); ACs classified (Phase 7); seams and removal keywords walked (Phase 8); spec↔PRD AC matches, file-role entries, and forward-references re-swept (Phase 9). A finding count without a denominator is not evidence of a clean phase — "0 blockers" over an unstated sample is indistinguishable from a thorough pass, and the checks most worth gaming are exactly the per-item ones.
 
 The ✅ ready verdict may be emitted **only when every executed phase's Summary line carries its examined-item counts.** A phase line without denominators makes the audit incomplete — complete the enumeration (or record it), never soften the verdict text around the gap.
 
