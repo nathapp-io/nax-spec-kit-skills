@@ -1,5 +1,10 @@
 # Worked Example — SPEC-plan-asymmetric-pipeline.md
 
+> **Historical record.** This walkthrough predates the Evidence discipline rule
+> and the `P4.n` registry; its Summary lines intentionally lack examined-item
+> denominators and its citations reflect the run as it actually happened. Do not
+> copy its report shape — follow SKILL.md's current Output format.
+
 A walkthrough of what `spec-review` catches when run against the asymmetric-pipeline spec **before** the manual back-and-forth that polished it. Every finding below was discovered during the real review; the skill exists to surface them mechanically on the first pass.
 
 ## Setup
