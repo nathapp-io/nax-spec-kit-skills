@@ -179,6 +179,16 @@ Every AC must be **behavioral and independently testable**.
 
     A prohibition needs the negative to be observable: "through the index, **not** `timeLookup()`" is only pinned by an AC that fails when `timeLookup()` is used — typically a double whose `timeLookup()` returns nothing for the inputs the mandate is about.
 
+13. **State the composition when a function declares more than one threshold, limit or mode.** Rule 9 pins each *axis*; this rule pins the *cells between them*. When one function carries two or more independent ceilings, limits, modes or branches — a byte cap and a line cap, a size limit and a timeout, a strict mode and a legacy path — an AC per axis is not coverage. Say explicitly what happens to an input that trips more than one, normally as an **ordered pipeline** ("the byte cap applies first, then the line cap over its output, then the per-line cap last"), and add one AC per interaction the order makes observable.
+
+    "They are independent" is not an answer: independence still has to say what the output looks like when two fire. Checked **per pair** — three ceilings are three pairs plus the all-three case, and stating two of them leaves the rest open.
+
+    Why this deadlocks, and why it hides. Unlike Rule 9, the spec looks *complete*: every axis has an AC, a coverage sweep passes, and the undefined region is a cross-product cell nobody wrote down. At implementation time the semantic reviewer reads one axis's AC literally and the adversarial reviewer reads another's, each demanding a different output for the same input — and each fix breaks the test written for the other reading. Real case: a truncation function with a byte cap, a line-count cap and a per-line character cap, one AC each and nothing saying which wins; three rectification iterations returned `regressed-different-source` with the finding relocating each time, the story exhausted two model tiers, and the run was killed by hand.
+
+    **Also state the satisfiability relation** when several constants bound one quantity. Caps whose values make one of them unreachable leave that cap's ACs untestable and make every boundary case trip two at once (real case: `MODEL_MAX_BYTES` / `MODEL_MAX_LINES` / `MODEL_MAX_LINE_CHARS` set to 40_000 / 2 / 2_000, where no body satisfying the line caps could ever reach the byte ceiling).
+
+    If pinning the interactions would breach the story's AC cap, split the story — same escape hatch as Rule 9, not a licence to leave cells silent. spec-review re-checks this as P4.5; resolve it at authoring time.
+
 ### Examples
 
 ❌ **Bad:**
@@ -187,6 +197,7 @@ Every AC must be **behavioral and independently testable**.
 - "Function handles edge cases correctly" → vague
 - "Tests added and passing" → meta
 - `registerDlq(factory)` wires the service when `factory` returns `enableProcessor: true` → silent about async factories; leaves the async input class undefined (Rule 9)
+- Three ACs pinning a byte cap, a line cap and a per-line cap separately, with nothing saying which wins → complete coverage, undefined cross-product cell (Rule 13)
 
 ✅ **Good:**
 - `buildPostRunContext()` returns `PostRunContext` where `logger.info('msg')` forwards to the run logger with `stage='post-run'`
@@ -196,6 +207,8 @@ Every AC must be **behavioral and independently testable**.
 - `registerDlq(syncFactory)` wires `DLQ_SERVICE` when the **synchronous** factory returns `enableProcessor: true` *(input class pinned — Rule 9)*
 - `registerDlq(syncFactory)` throws unknown-provider when the **synchronous** factory returns `enableProcessor: false` *(the sibling class, pinned)*
 - Async (`Promise`-returning) factories are **Out-of-scope** for conditional DLQ wiring — declared in the spec's Out-of-scope, not left to reviewer interpretation
+- `truncate()` applies the byte cap first, then the line-count cap over its output, then the per-line cap last *(composition stated — Rule 13)*
+- `truncate()` on a body over **both** the byte cap and the line cap returns at most `MODEL_MAX_LINES` lines, none longer than `MODEL_MAX_LINE_CHARS` *(the interaction the order makes observable — Rule 13)*
 
 ## Story Sizing
 
@@ -767,6 +780,7 @@ Without this, the agent either ignores errors entirely or adds overly defensive 
 | No integration context | Agent invents types that don't fit existing code | List exact types/interfaces to extend in Design |
 | Missing implementation approach | Agent guesses wrong method (AST vs LLM vs regex) | State the approach explicitly in Design |
 | Baseline signature with no target | Planner promotes the pre-change shape into the story's interface, contradicting its own ACs | State a Baseline/Target pair, or state only the target |
+| Several caps, one AC each, no composition | Coverage looks complete; the cross-product cell is contested territory and the story never converges | State the order (usually a pipeline) plus one AC per observable interaction (Rule 13) |
 | No failure modes | Agent ignores errors or over-blocks | Specify fail-open/closed, retry, error output |
 | Too many stories | Overhead per story; tiny stories are fragile | Target 3-7 stories; merge if <4 ACs each |
 | Integration-only story | Duplicates ACs from earlier stories | Integration behavior belongs in the story that implements it |

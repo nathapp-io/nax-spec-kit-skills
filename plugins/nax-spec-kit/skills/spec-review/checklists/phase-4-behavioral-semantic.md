@@ -6,7 +6,7 @@
 
 This is the only LLM-judgment phase. The other phases are mechanical; this one requires understanding intent. Run it last — earlier phases reduce noise.
 
-Check IDs (`P4.1`–`P4.11`) match the registry table in SKILL.md § Phase 4; Steps 1–4 together implement `P4.1`. Report each check with its unit-of-account count.
+Check IDs (`P4.1`–`P4.12`) match the registry table in SKILL.md § Phase 4; Steps 1–4 together implement `P4.1`. Report each check with its unit-of-account count. `P4.12` is a roll-up of findings the other checks already made, re-keyed by story — it runs last and adds no new analysis.
 
 ## Step 1 (P4.1) — Build the "referenced existing behavior" inventory
 
@@ -293,6 +293,70 @@ Run this check by:
 1. Open the file the spec credits as "shipped"
 2. Search for callers of its main functions: `grep -rn "<function>" src/ | grep -v "<defining-file>"`
 3. If there are zero callers outside the defining file, the function ships in name only — flag the claim as **MAJOR**
+
+## Step 7 (P4.12) — Per-story deadlock roll-up
+
+The preceding checks are enumerated per *item* — per dimension, per pair, per named API,
+per property. Deadlock, however, is a property of a **story**: the story is the unit `nax`
+runs, rectifies and escalates, and it is the unit an author has to fix or split. Three
+findings scattered across three phase sections read as "the spec has some majors"; the same
+three attributed to `US-003` read as "this story will not converge". This step re-keys
+findings already made — it introduces no new analysis and no new findings.
+
+**Scope.** Attribute every finding from the deadlock-class checks to the story that owns it,
+via the story's `Modifies` / `Creates` / `Context Files` or the AC it was raised against. The
+deadlock-class checks are:
+
+| Source | Check | Deadlock mechanism |
+|:--|:--|:--|
+| Phase 4 | P4.2 | two ACs jointly unsatisfiable — the implementer cannot satisfy both |
+| Phase 4 | P4.4 | silent input class — reviewers over-interpret in contradictory directions |
+| Phase 4 | P4.5 | undefined cross-product cell — each fix breaks the other reading's test |
+| Phase 4 | P4.7 | unpinned mandate — reachable by no test, quotable by semantic review forever |
+| Phase 4 | P4.8 | unpinned risk property — adversarial substantiates it on green code, round after round |
+| Phase 4 | P4.9 / P4.10 | underivable fixture or constant — the AC is permanently red |
+| Phase 5 | unnamed `add validation` / `add error handling` | unpinned negative space both reviewers arbitrate |
+| Phase 8 | AC noun richer than the contract emits | review holds the render to the literal noun |
+
+A finding may be attributed to more than one story when it spans a seam; count it in each.
+When a finding cannot be attributed to a single story, attribute it to the feature row.
+
+**Verdict per story**, applied in order — the first matching rule wins:
+
+1. **❌ DEADLOCK LIKELY** — any blocker-severity deadlock-class finding: a jointly-unsatisfiable
+   AC pair (P4.2, or a P4.5 pair escalated to blocker), or an underivable fixture/constant
+   (P4.9/P4.10). These do not need two reviewers to disagree; the story is unsatisfiable as
+   written.
+2. **⚠️ AT RISK** — two or more deadlock-class findings of *distinct* check IDs on one story.
+   Two silent dimensions and an unpinned mandate is not three independent majors; it is one
+   story with enough undefined surface that the reviewers have somewhere to disagree.
+3. **⚠️ AT RISK** — exactly one deadlock-class finding on a story that is also risk-sensitive
+   per P4.8's domain table. The adversarial reviewer runs last, on green code, and needs only
+   one unpinned property.
+4. **✅ CLEAR** — no deadlock-class findings, *and* every deadlock-class check reports a
+   denominator for this story (see below). A story no check examined is not clear; it is
+   unexamined.
+
+**Denominators are mandatory here too.** Each cell carries `found/examined` in that check's
+unit of account — `1/4` silent classes means four dimensions were enumerated and one was
+silent. A cell with no denominator is `n/a` only when the check genuinely does not apply to
+the story (P4.8 on a non-risk-sensitive story, P4.9 on a story with no fixtures); otherwise
+it is an incomplete enumeration and the story cannot be graded ✅ CLEAR.
+
+**Phases that did not run.** `P4.12` draws two of its inputs from Phases 5 and 8. When either was
+skipped or halted, record that cell as `not run` rather than `0` — an unexamined surface is not a
+clean one, and rule 4 withholds ✅ CLEAR from any story carrying a `not run` cell. Phase 4's own
+checks always run (SKILL.md § Stop-the-line gate exempts the phase), so their cells are never
+`not run`.
+
+**Do not soften on aggregate.** The roll-up never lowers an individual finding's severity, and
+a ✅ CLEAR story does not excuse a blocker found elsewhere in the spec. It is a reading of the
+findings, not a re-adjudication of them.
+
+**Recommended fix, by verdict.** DEADLOCK LIKELY is resolved before the story is run — pin the
+contested cell, state the constant, or split the story. AT RISK is resolved the same way, or
+consciously accepted with the deferral written into that story's `Out of scope` so the scope
+boundary lives in the spec rather than in a reviewer's judgment at round 12.
 
 ## Finding template
 
