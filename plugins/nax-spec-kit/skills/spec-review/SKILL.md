@@ -12,6 +12,7 @@ A nine-phase audit that grounds an implementation spec in the actual codebase be
 - User asks "review this spec", "check this spec", "audit this spec" with a file path
 - User invokes `/spec-review <path>` explicitly
 - After drafting a spec via `feature-dev:code-architect`, before opening US-001
+- Dispatched by `spec-writing` Phase 6 as a fresh reviewer — the crafted context is the spec path, project root, resolved story-size gate numbers, rule-store paths, and the `nax spec lint` outcome (do not re-run lint when the outcome says it passed); never request the drafting session's history
 - In a PR check for any PR that adds or substantially modifies a file under `docs/specs/`
 - Before declaring a spec "ready for implementation"
 

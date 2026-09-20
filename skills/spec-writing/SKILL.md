@@ -47,6 +47,7 @@ These thoughts mean stop — you are rationalizing:
 | "The guide says 15 ACs, so 15 is the cap" | The host's `maxAcCount` ranges 6–24 across real projects. Resolve it in Pre-flight and size against that. |
 | "spec-review will catch it downstream" | Phase 6's own sweep is the primary gate; spec-review is defense-in-depth, not a backstop for known debt. |
 | "It grew mid-draft, but I'm nearly done" | The ratchet is one-way: scale discovered mid-draft upgrades the Step 0 classification. Stop, split, re-enter. |
+| "I just wrote this — reviewing it inline is faster" | The drafter's assumptions are what the audit tests. Dispatch the fresh reviewer; inline is only for hosts without subagents. |
 
 ## Inputs
 
@@ -355,9 +356,20 @@ State the **behaviour**, not the implementation and not the source text. "Symbol
 
 **Output (written to file):** Acceptance Criteria section, per-story AC blocks with verification anchors. Risk-sensitive stories additionally carry an `**Out of scope:**` list under their AC block naming each deferred risk property with its one-line reason. At this point the spec file is structurally complete.
 
-### Phase 6 — Self-review handoff
+### Phase 6 — Final-audit handoff
 
-By Phase 6 the target file already contains the complete draft (Phases 1–5 wrote incrementally). This phase performs the final audit by **transitioning to the spec-review skill** — the agent loads spec-review and follows its phases 1-8 against the draft. spec-review is not invoked as a subprocess; it's the next skill the agent runs.
+By Phase 6 the target file already contains the complete draft (Phases 1–5 wrote incrementally). This phase performs the final audit by **dispatching spec-review to a fresh reviewer** — a subagent that loads the spec-review skill and runs its phases 1-8 against the draft, given crafted context only:
+
+- the spec path and the project root,
+- the story-size gate numbers resolved in Pre-flight step 3,
+- the rule-store paths discovered in Pre-flight step 2,
+- the `nax spec lint` outcome (clean / N `[BLOCK]` findings fixed / skipped — nax not on PATH).
+
+**The drafting session itself runs the `nax spec lint` stage and every pre-handoff sweep below *before* dispatching** — the reviewer receives a draft those gates have already passed, and the lint-outcome bullet is what tells it not to re-run them. Never hand over the drafting session's history. The drafter's assumptions — that a seam path exists, that a constant was obviously delegated — are exactly what the audit must test, and a reviewer that inherits them cannot; self-review bias is the one defect class an in-session pass structurally misses. The reviewer returns the report; its grep/read evidence stays in its own context, keeping the audit's 50–150 tool calls out of the drafting session.
+
+**Fallback — no subagents on this host:** run spec-review inline (load the skill and run it in-session, as this phase formerly did) and record `inline — no subagent host` in the report's spec-review mode parenthetical, so the reader knows the audit was not fresh-eyes.
+
+**Verify before editing.** Each returned blocker is checked against the codebase before the draft is changed — a reviewer can be wrong. Where the evidence contradicts a finding, push back in the report with that evidence and record the ruling; never edit the draft to satisfy a false positive.
 
 #### Stage: `nax spec lint` (run first)
 
@@ -418,12 +430,12 @@ The planner carries spec text into the implementer prompt verbatim or near-verba
 - `similar to US-00N` / `same as US-00N` — stories execute in isolated sessions and the reader may never see US-00N; repeat the content
 - `add validation` / `add error handling` with no named input, error type, or behaviour — a sentence that already names all three is not a hit; the sentinel is unpinned negative space, not the verb
 
-A hit inside a fenced example block, or in Motivation prose quoting existing code, is not a finding. These sentinels are legal markdown and extract cleanly, so `nax spec lint` never flags them — this sweep is the primary gate (spec-review Phase 5 re-checks as defense-in-depth). Then transition to spec-review.
+A hit inside a fenced example block, or in Motivation prose quoting existing code, is not a finding. These sentinels are legal markdown and extract cleanly, so `nax spec lint` never flags them — this sweep is the primary gate (spec-review Phase 5 re-checks as defense-in-depth). Then dispatch the fresh reviewer (inline on the fallback host).
 
 Loop policy:
 
 - **First pass — no blockers:** hand the spec back to the user with a one-line summary. Done.
-- **First pass — blockers:** identify which spec-writing phase owns each blocker (Phase 3 owns symbol-existence blockers, Phase 5 owns AC-tagging blockers, etc.). Fix in-file, then re-run spec-review.
+- **First pass — blockers:** identify which spec-writing phase owns each blocker (Phase 3 owns symbol-existence blockers, Phase 5 owns AC-tagging blockers, etc.). Fix in-file, then dispatch a fresh reviewer again (inline on the fallback host).
 - **Second pass — still blockers:** stop. Hand back the partial spec with the remaining blocker list and ask the user to resolve. Two passes is the cap — further loops on a fundamentally broken draft burn budget without converging.
 
 Do **not** invoke spec-review's Phase 9 (PRD fidelity) — there is no PRD yet. That phase runs after the host project's planner step (e.g. `nax plan`).
@@ -516,7 +528,7 @@ After writing, produce a single-message summary to the user:
 **Source:** <brainstorm source>
 **Phases run:** 6 of 6
 **spec lint:** <clean / N [BLOCK] findings fixed / skipped — nax not on PATH>
-**spec-review:** <ready / blockers resolved after N iterations>
+**spec-review:** <ready / blockers resolved after N iterations> (<fresh reviewer / inline — no subagent host>)
 
 ## What was drafted
 - <N> stories, <M> ACs total (all runtime `[unit]`/`[integration]`/`[cli]`)
@@ -531,6 +543,9 @@ After writing, produce a single-message summary to the user:
 2. <decision from Phase 2>
 ...
 
+## Findings overruled
+<only when a reviewer finding was rejected — per finding: the finding, the codebase evidence that contradicts it, and the ruling. Omit the section when nothing was overruled.>
+
 ## Next step
 `nax spec lint` <passed clean / was skipped — nax not on PATH; run it on a nax host before `nax plan`>.
 Run `spec-review --spec <path>` for a full codebase audit before `nax plan`.
@@ -539,7 +554,7 @@ Run `spec-review --spec <path>` for a full codebase audit before `nax plan`.
 ## What this skill is NOT
 
 - **Not brainstorming.** Assumes intent is stable. If intent is fluid, redirect to `brainstorming`.
-- **Not spec-review.** Performs only a light symbol audit in Phase 3 and invokes full spec-review in Phase 6. Doesn't replace spec-review's nine phases.
+- **Not spec-review.** Performs only a light symbol audit in Phase 3 and dispatches full spec-review to a fresh reviewer in Phase 6. Doesn't replace spec-review's nine phases.
 - **Not `nax plan`.** Decomposes into stories at the spec level (3-7 user-visible capabilities), not into PRD slices (per-AC executable plans).
 - **Not a design reviewer.** Doesn't judge whether the design is good — only whether it's structured per the guide. Use `architect` or `code-reviewer` for design quality.
 - **Not project-specific.** Rules come from [reference/spec-writing-guide.md](reference/spec-writing-guide.md) and the host project's rule store(s) — `.nax/rules/` (nax-native canonical store, higher priority) and/or `.claude/rules/`. Same skill works on any project.
@@ -553,9 +568,11 @@ Run `spec-review --spec <path>` for a full codebase audit before `nax plan`.
 | 3 — Grounding | 10-50 | 5-15k | Variable; greenfield skips this. |
 | 4 — Decompose | 0-5 | 5-10k | Mostly LLM drafting. |
 | 5 — AC drafting | 0-5 | 10-25k | Largest drafting phase. |
-| 6 — Self-review | 50-150 | 20-50k | Runs spec-review 1-2 times. |
-| **Total (extension)** | **60-220** | **45-115k** | Typical. |
-| **Total (greenfield)** | **20-80** | **30-80k** | Phase 3 skipped, lighter Phase 6. |
+| 6 — Audit dispatch | 2-10 (drafting session) | 5-15k (drafting session) | Dispatches spec-review 1-2 times; the audit's 50-150 tool calls / 20-50k tokens run in the reviewer subagent (inline fallback keeps the old cost in-session). |
+| **Total (extension)** | **60-220** | **50-130k** | Typical. |
+| **Total (greenfield)** | **20-80** | **45-115k** | Phase 3 skipped, lighter Phase 6. |
+
+Totals are all-in (drafting session + reviewer subagent); on a fresh-reviewer host the drafting session itself stays well under them.
 
 Use this skill:
 
