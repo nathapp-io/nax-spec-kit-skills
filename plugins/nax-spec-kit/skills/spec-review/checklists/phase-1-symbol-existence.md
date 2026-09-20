@@ -126,6 +126,43 @@ After Phase 1 completes, record the allowlist as JSON for use by later phases:
 
 Phase 2 uses `modifiedFiles` to know which type definitions are about to grow; Phase 6 uses `newSymbols` to verify they're NOT already present.
 
+## Step 6b — Forward-reference consistency sweep
+
+The allowlist passes symbols that exist nowhere yet — which means nothing has
+checked the allowlist against itself. Sweep every mention of each allowlisted
+symbol across the whole spec (stories' ACs, `### Seams`, `Creates` lists, Design
+prose):
+
+1. For each `newSymbols` entry, collect every spelling the spec uses for it.
+   A mention is "the same symbol" when the surrounding text plainly refers to the
+   artifact one story creates (the consumer story's seam AC, a `Context Files`
+   annotation naming the producer, a Seams entry pairing the two stories).
+2. Any two spellings that differ — including case and affix near-misses — are a
+   finding. Both pass the existence check, so nothing downstream ever reconciles
+   them: the producer story implements one name, the consumer's test stubs the
+   other, and because stories execute as **isolated sessions** the mismatch ships
+   as an integration failure, not a review comment.
+3. If the spec genuinely means two distinct symbols with confusable names, it
+   must say so at the point where they meet (a Seams entry or Design sentence
+   distinguishing them). Absent that, presume drift.
+
+Flag **MAJOR** per drifted symbol.
+
+Worked example (invented). US-002's `Creates` lists `src/report/render.py` with
+`renderSummary()`; US-004's seam AC reads "stub `renderSummaryTable`; trigger
+`report generate`; assert it is called once". Both names are forward references,
+both pass Steps 3–4, and the spec never introduces a second renderer — US-004's
+test will stub a function no story creates. One of the two spellings is wrong,
+and only this sweep can say so before implementation.
+
+```markdown
+### Major — forward reference `<symbol>` spelled two ways across stories
+
+**Spec reference:** <US-00A section> line <N> (`<spelling 1>`) vs <US-00B section> line <M> (`<spelling 2>`)
+**Codebase reality:** neither spelling exists (both are allowlisted forward references), so no phase reconciles them
+**Recommended fix:** pick one spelling and use it at every mention — or, if two symbols are intended, add the Seams/Design sentence that distinguishes them
+```
+
 ## Finding template
 
 ### Symbol not found

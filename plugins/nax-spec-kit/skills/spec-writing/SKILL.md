@@ -383,9 +383,21 @@ Banned tokens (treat each hit as a blocker):
 - Shell pipe inside backticks: `` ` ... | ... ` ``
 - Command substitution: `$(` inside backticks
 
-For each hit, rewrite the AC into the runtime behaviour it is meant to prove, using the conversion table in §Nax-friendly AC format above (or move a removal/absence claim to the story's build/static-gate verification note). Re-grep until zero hits remain. Then transition to spec-review.
+For each hit, rewrite the AC into the runtime behaviour it is meant to prove, using the conversion table in §Nax-friendly AC format above (or move a removal/absence claim to the story's build/static-gate verification note). Re-grep until zero hits remain.
 
 **Why this blocks:** nax has no shell executor — an implementation session writes a failing test and makes it pass, so a file-content / shell AC is not implementable (see the guide's anti-pattern table). Catching it here saves a planner round-trip; spec-review Phase 7/9 are defense-in-depth.
+
+#### Placeholder-sentinel sweep (same gate, second list)
+
+The planner carries spec text into the implementer prompt verbatim or near-verbatim — Stories/Design prose is synthesised into the story's `description`, `### Modifies` reasons are copied verbatim, and `## Out of Scope` bullets are backfilled verbatim. A placeholder in any of them ships as an instruction, and in review as an ungroundable quote surface. Grep the four channel-reaching surfaces (Stories/Design prose, AC bullets, `## Out of Scope` bullets, `### Modifies` reasons) for these sentinels; each hit is a blocker to fix in-file:
+
+- `TBD`, `TODO`, `FIXME`, `???` — **exception:** a bare `TBD`/`None.`/`N/A` as the *entire* `## Out of Scope` body is filtered by the extractor as "nothing deferred" and is not a hit; prefer a bare `None.` per the guide
+- `handle … appropriately` / `handle … properly` / `as appropriate` — name the input, the error type, and the behaviour instead
+- a trailing `etc.` inside an AC — an implementer cannot test an et-cetera; enumerate or defer to Out-of-scope (checked as a read-pass over AC bullets — a line grep cannot scope it)
+- `similar to US-00N` / `same as US-00N` — stories execute in isolated sessions and the reader may never see US-00N; repeat the content
+- `add validation` / `add error handling` with no named input, error type, or behaviour — a sentence that already names all three is not a hit; the sentinel is unpinned negative space, not the verb
+
+A hit inside a fenced example block, or in Motivation prose quoting existing code, is not a finding. These sentinels are legal markdown and extract cleanly, so `nax spec lint` never flags them — this sweep is the primary gate (spec-review Phase 5 re-checks as defense-in-depth). Then transition to spec-review.
 
 Loop policy:
 
