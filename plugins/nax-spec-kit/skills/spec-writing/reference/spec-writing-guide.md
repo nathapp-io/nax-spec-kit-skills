@@ -187,7 +187,7 @@ Every AC must be **behavioral and independently testable**.
 
     **Also state the satisfiability relation** when several constants bound one quantity. Caps whose values make one of them unreachable leave that cap's ACs untestable and make every boundary case trip two at once (real case: `MODEL_MAX_BYTES` / `MODEL_MAX_LINES` / `MODEL_MAX_LINE_CHARS` set to 40_000 / 2 / 2_000, where no body satisfying the line caps could ever reach the byte ceiling).
 
-    If pinning the interactions would breach the story's AC cap, split the story — same escape hatch as Rule 9, not a licence to leave cells silent. spec-review re-checks this as P4.5; resolve it at authoring time.
+    If pinning the interactions would breach the story's AC cap, split the story — same escape hatch as Rule 9, not a licence to leave cells silent. spec-review re-checks this as P4.5 (composition) and P4.10 (satisfiability relation); resolve it at authoring time.
 
 ### Examples
 
@@ -208,7 +208,8 @@ Every AC must be **behavioral and independently testable**.
 - `registerDlq(syncFactory)` throws unknown-provider when the **synchronous** factory returns `enableProcessor: false` *(the sibling class, pinned)*
 - Async (`Promise`-returning) factories are **Out-of-scope** for conditional DLQ wiring — declared in the spec's Out-of-scope, not left to reviewer interpretation
 - `truncate()` applies the byte cap first, then the line-count cap over its output, then the per-line cap last *(composition stated — Rule 13)*
-- `truncate()` on a body over **both** the byte cap and the line cap returns at most `MODEL_MAX_LINES` lines, none longer than `MODEL_MAX_LINE_CHARS` *(the interaction the order makes observable — Rule 13)*
+- `truncate()` on a body over **both** the byte cap and the line cap returns at most `MODEL_MAX_LINES` lines *(the interaction the order makes observable — Rule 13)*
+- `truncate()` on a body over **both** the byte cap and the line cap returns no line longer than `MODEL_MAX_LINE_CHARS` *(the sibling interaction, pinned separately — Rule 1)*
 
 ## Story Sizing
 
