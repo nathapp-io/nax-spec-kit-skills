@@ -143,6 +143,25 @@ a `None.`/`N/A` placeholder, a trailing-colon lead-in above a list, and CRLF end
 **not** flag it as a missing feature-level declaration; Phase 4's adversarial-scope
 check is what reads it.
 
+## Step 8c — Unrouted constraints
+
+Sweep the Design and Summary sections for normative constraints that name **no
+code symbol** — version floors ("requires runtime ≥ X"), dependency bans ("do not
+add a new dependency"), naming/copy rules, "no schema migration". Feature-scoped
+and repo-wide constraints alike. For each, require one of the four routes from
+the spec-writing guide's § Constraint routing: a `## Out of Scope` bullet, a
+covering AC, a `### Modifies` entry, or a rule-store home **the spec points at**
+(a Design pointer naming the rule file — without it the route is unverifiable
+from the spec and counts as unrouted). A constraint with none is visible only as
+Design prose, which reaches the implementer solely through planner paraphrase —
+the same loss mode as an unextracted deferral (Step 8b), one row over.
+
+Flag **MAJOR** per unrouted constraint. Report once: a prohibition already
+flagged by Step 8b's "deferral stated only in prose" row is Step 8b's finding —
+do not re-report it here. Boundary: a mandate naming a specific API or call
+sequence belongs to Phase 4's P4.7 (unpinned design mandate), not here — this
+step covers exactly the constraints P4.7 never reaches.
+
 ## Step 9 — AC quality spot-check (mechanical heuristics)
 
 Flag the following AC patterns as **MINOR** (these are smells, not always wrong):
