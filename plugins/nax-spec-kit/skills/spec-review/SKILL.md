@@ -1,6 +1,6 @@
 ---
 name: spec-review
-description: Use this skill to systematically review an implementation spec against the actual codebase before handing it off to implementers. Catches API hallucination (named symbols that don't exist), PRD↔code contradictions (proposed shapes incompatible with real schemas/types), existing-test contract collisions (a closed-world assertion an unrelated story's shape change necessarily breaks, deadlocking the run), convention violations (forbidden patterns, wrong file locations, unknown session roles), behavioral semantic drift (spec prose vs actual code behavior), sizing breaches (AC caps), out-of-scope sections written in a shape `nax plan` cannot extract, stale references from earlier revisions, and (when --prd is passed) spec-to-PRD fidelity loss after `nax plan` (including dropped out-of-scope statements). Invoke when the user asks to "review this spec", "check this spec against the codebase", "audit this spec for hallucination", "audit the PRD against the spec", or `/spec-review <path>`. Project-agnostic — loads `.nax/rules/` (nax-native, higher priority) and `.claude/rules/` dynamically.
+description: Use this skill to systematically review an implementation spec against the actual codebase before handing it off to implementers, and (with --prd) to audit a generated PRD against its spec. Invoke when the user asks to "review this spec", "check this spec against the codebase", "audit this spec for hallucination", "audit the PRD against the spec", or `/spec-review <path>`. Runs after `nax spec lint` and before `nax plan`; the PRD fidelity pass runs after `nax plan`. Project-agnostic — loads `.nax/rules/` (nax-native, higher priority) and `.claude/rules/` dynamically.
 ---
 
 # Spec Review Skill
@@ -29,6 +29,19 @@ the check when `nax` is not on PATH and note the skip in the audit report.
 - Spec is in active drafting (not yet stable) — review wastes effort
 - Spec is for greenfield code with no existing codebase to ground against — Phase 1/2/3 produce noise (but Phase 8's contract-seam check still applies: it reconciles the spec's *own* new producer/consumer contracts against each other, not against code)
 - The request is "is this design good?" — that's a design review, use `architect` or `code-reviewer` instead. This skill checks internal consistency and grounding, not architecture quality.
+
+## Red Flags
+
+These thoughts mean stop — you are rationalizing:
+
+| Thought | Reality |
+|---------|---------|
+| "It already passed `nax spec lint`" | Lint checks extraction shape, not grounding. Every phase still runs. |
+| "Phase 8 is only for removal specs" | The Class B seam-path trigger is independent of removals — a pure extension spec can assert a false call path. |
+| "The spec is short — I'll sample the symbols" | A sampled pass is worthless as a gate. Extract and check every symbol, data literal, and per-item Phase 4 check. |
+| "This phase looks clean, skip its checklist" | The checklist IS the procedure; the SKILL.md section is only the contract. |
+| "I drafted this spec, so the audit is a formality" | The drafter's assumptions are exactly what the audit exists to test. |
+| "The finding feels minor — downgrade it" | Severity is fixed by consequence (fails at runtime/compile = blocker), not by feel. |
 
 ## Inputs
 
