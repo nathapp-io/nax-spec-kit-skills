@@ -6,7 +6,9 @@
 
 This is the only LLM-judgment phase. The other phases are mechanical; this one requires understanding intent. Run it last — earlier phases reduce noise.
 
-## Step 1 — Build the "referenced existing behavior" inventory
+Check IDs (`P4.1`–`P4.11`) match the registry table in SKILL.md § Phase 4; Steps 1–4 together implement `P4.1`. Report each check with its unit-of-account count.
+
+## Step 1 (P4.1) — Build the "referenced existing behavior" inventory
 
 Scan the spec for every place that asserts behavior of code that already exists. Patterns to look for:
 
@@ -75,7 +77,7 @@ Verify config access path matches the lifecycle the spec implies.
 
 "Returns null on failure" might be the spec's claim, but the actual code might throw. Or vice versa. Open the implementation and check.
 
-## Step 5 — Cross-AC consistency (within the spec)
+## Step 5 (P4.2) — Cross-AC consistency (within the spec)
 
 Beyond comparing spec to code, also compare spec ACs to spec design within the same document. Common drift:
 
@@ -85,7 +87,7 @@ Beyond comparing spec to code, also compare spec ACs to spec design within the s
 
 When prose and ACs disagree within the spec, the spec itself is internally inconsistent — flag as **BLOCKER** because the implementer doesn't know which to trust.
 
-### Baseline signature stated without its target (completeness)
+### P4.3 — Baseline signature stated without its target (completeness)
 
 The check above catches prose and ACs that **disagree**. This one catches prose that is
 **true and still misleading**: a Design listing of the *current* shape of a symbol the spec
@@ -126,7 +128,7 @@ neither that check nor the disagreement check above. This is the only check that
 parameters legitimately reappear inside the target signature, so their presence proves
 nothing. Read the emitted block; do not pattern-match it.
 
-### Under-specified input class (completeness)
+### P4.4 — Under-specified input class (completeness)
 
 Beyond prose-vs-AC disagreement, check for **input classes no AC defines**.
 
@@ -146,7 +148,7 @@ If a class is exercised by no AC's test **and** not listed in the spec's **Out-o
 
 **Recommended fix:** add an AC pinning the class's behavior, **or** move it to Out-of-scope. Never leave it silent for the reviewers to arbitrate.
 
-### Undefined dimension interaction (completeness)
+### P4.5 — Undefined dimension interaction (completeness)
 
 The check above asks whether a dimension is **missing**. This one asks what happens when two
 dimensions that are each **present** fire at the same time.
@@ -180,7 +182,7 @@ A applies first, then B over its output, then C last") rather than a set of alte
 and add one AC per interaction the order makes observable. "They are independent" is not an
 answer; independence still has to say what the output looks like when two fire.
 
-### Unpinned failure-handling row (completeness)
+### P4.6 — Unpinned failure-handling row (completeness)
 
 A row in the spec's `### Failure Handling` design subsection (or `## Failure Modes` prose) with **neither a covering AC in its owning story nor an entry in that story's `Out of scope`** is an authoring gap, not a planner one.
 
@@ -190,7 +192,7 @@ Detection: enumerate the rows of each story's Failure Handling subsection; for e
 
 **Do not flag the inverse.** An AC covering a negative path the design does *not* state is not a finding — unanticipated edge cases belong in the planner's advisory `suggestedCriteria`. Recommending they be pinned converts a safe suggestion into a permanently-red blocking criterion and spends the story's AC budget.
 
-### Unpinned design mandate (completeness)
+### P4.7 — Unpinned design mandate (completeness)
 
 Sweep the **whole** Design section — every subsection, not just `### Failure Handling` — for prose that constrains *how* the implementation must work by naming a symbol: "Library APIs used:" lists, "X goes through `foo()` directly", "through A, **not** `B`", numbered call sequences. Each is a normative contract.
 
@@ -209,7 +211,7 @@ Flag **major** (it predicts non-convergence, not incorrectness).
 
 **Recommended fix:** pin the call as an AC, soften the prose to non-normative wording ("any converter that maps an index to a pixel"), or declare it out of scope.
 
-### Adversarial-scope gap (risk-sensitive stories)
+### P4.8 — Adversarial-scope gap (risk-sensitive stories)
 
 A story whose subject matter is **risk-sensitive** — authentication/sessions, rate limiting/counters, replay protection (TOTP/OTP/MFA/nonce), idempotency/dedup stores (reserve-then-finalize, upsert), multi-tenancy scoping, concurrency/atomicity (check-then-act, upsert, locks), expiry/TTL/retention, crypto/secrets — but which leaves any of that domain's **canonical risk properties** (atomicity, window expiry, replay rejection, tenant scoping, expiry filtering, finalize/write-back atomicity) **neither pinned by a property-style AC nor named in an `Out of scope` entry**, is a predictable adversarial-review deadlock.
 
@@ -219,7 +221,7 @@ Detection: match risk-domain keywords against the story's title, design touchpoi
 
 Flag **MAJOR** (it predicts non-convergence, not incorrectness). **Recommended fix:** pin each silent risk property as an executable AC, or declare it out of scope — the spec, not a downstream reviewer, must own the scope boundary.
 
-### Fixture-shape derivability (satisfiability)
+### P4.9 — Fixture-shape derivability (satisfiability)
 
 When an AC asserts a **property of a fixture** — "only `t*` is True", "exactly 3
 rows", "sorted ascending by timestamp", "the second entry is empty" — that property
@@ -246,7 +248,7 @@ Ask the question in this direction — *"what does the described procedure produ
 — and only then compare to the claim. Reading the claim first primes you to accept
 it.
 
-### Constant-value derivability (satisfiability)
+### P4.10 — Constant-value derivability (satisfiability)
 
 The same reasoning, one level over: a **named constant or threshold** an AC's behaviour
 depends on, whose value the spec never states and never explicitly delegates.
@@ -281,7 +283,7 @@ constraint would have been checkable before any code was written.
 constants bound one quantity, state the **relation** that keeps them mutually satisfiable —
 that relation is reviewable even when the individual values are left to the implementer.
 
-## Step 6 — Reality of "shipped" claims
+## Step 6 (P4.11) — Reality of "shipped" claims
 
 When the spec says "X is already shipped" or "DONE", open the referenced file and verify it actually does what the spec claims. Just because a file exists doesn't mean its behavior matches the claim.
 

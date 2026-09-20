@@ -82,12 +82,24 @@ Load every rule file under the project's rule store(s) — `.nax/rules/` (nax-na
 
 ### Phase 4 — Behavioral semantic check
 
-See [checklists/phase-4-behavioral-semantic.md](checklists/phase-4-behavioral-semantic.md).
+See [checklists/phase-4-behavioral-semantic.md](checklists/phase-4-behavioral-semantic.md) — the checklist owns every procedure, worked example and rationale; this table is the contract. Phase 4 is the only LLM-judgment phase. Run **every** check below, and report each `P4.n` with its unit-of-account count (see Output format § Evidence discipline).
 
-The only LLM-judgment phase. For each named check/function the spec describes behaviorally, open the actual implementation and confirm prose matches code semantics. Also runs eight completeness checks: **unpinned failure-handling rows** (a Failure Handling row with no covering AC and no out-of-scope entry — the planner authors it instead, so the spec loses control of wording that Rule 2 makes load-bearing), **under-specified input classes** (an input dimension no AC pins and no Out-of-scope entry defers) and the **adversarial-scope gap** (a risk-sensitive story — auth, rate limiting, replay/MFA, idempotency/dedup stores, tenancy, concurrency, expiry, crypto — that leaves any canonical risk property of its domain neither pinned by a property-style AC nor named in an Out-of-scope entry; checked **per-property**, so a present-but-partial Out-of-scope section does not cover the properties it stays silent about; a predictable adversarial-review deadlock, flagged major) and **fixture-shape derivability** (an AC asserting a property of a fixture — "only `t*` is True", "exactly 3 rows" — that does not follow from the spec's own stated generation procedure, or that the spec never says how to build; unsatisfiable as written) and **unpinned design mandates** (Design prose naming a specific API, symbol or call sequence the implementation must use — a "Library APIs used:" list, "goes through `X` directly", "through A, **not** `B`" — where no AC of the owning story names that API and no `Out of scope` entry releases it; `nax plan` copies the prose into the story's `description`, so semantic review can quote it verbatim while no test can reach it and the planner does not backfill an AC for it — the story goes green on tests and deadlocks in rectification; checked **per named API**, and it covers third-party and standard-library APIs, which the seam checks in Phases 5 and 8 do not reach). and **baseline signatures stated without their target** (a Design listing of the *current* shape of a symbol the spec mutates, with the target shape never stated — true against the codebase, so Phases 1/2/6 all pass it, but `nax plan` promotes it into the story's synthesised `**Interface**` block, which then contradicts the story's own ACs; no code fence is required for this, a plain signature list is enough; checked **per mutated symbol**) and **undefined dimension interaction** (two thresholds, limits or modes on one function, each pinned by its own AC in isolation, with nothing saying what happens when both apply to the same input — coverage looks complete and the undefined region is the cross-product cell; checked **per pair**, and escalates to blocker when two ACs read literally demand opposite outputs for one input) and **constant-value derivability** (a named constant or threshold an AC's behaviour depends on, whose value the spec never states and never explicitly delegates — Phase 1 passes it as a forward-reference, so the implementer picks the number and the reviewer judges against a different one; where several constants bound one quantity the spec must state the relation keeping them mutually satisfiable, since individually-plausible values can be jointly degenerate).
+| ID | Check | Fires on | Unit of account | Severity |
+|:--|:--|:--|:--|:--|
+| P4.1 | Behavioral claim vs code | prose asserting behaviour of existing code ("X already does Y", "reuses X", "X handles Z") that the implementation contradicts | per claim | blocker for decision-logic drift downstream code depends on; the checklist's Step 3 grades the other cases (input/output/failure-mode drift = major, cosmetic prose drift = minor) |
+| P4.2 | Cross-AC / prose-vs-AC consistency | Design and ACs disagreeing inside the spec — the implementer cannot know which to trust | per disagreement | blocker |
+| P4.3 | Baseline signature without target | a Design listing of a mutated symbol's pre-change shape with no target stated (no code fence required — a plain signature list is enough) | per mutated symbol | major |
+| P4.4 | Under-specified input class | an input dimension — enumerated from the signature and domain **before** reading the ACs — pinned by no AC and deferred by no Out-of-scope entry | per dimension | major |
+| P4.5 | Undefined dimension interaction | two individually-pinned thresholds/limits/modes on one function with nothing defining the cross-product cell | per pair | major; blocker when two ACs read literally demand opposite outputs for one input |
+| P4.6 | Unpinned failure-handling row | a `### Failure Handling` row with no covering AC and no out-of-scope entry — the planner authors the wording instead | per row | major |
+| P4.7 | Unpinned design mandate | Design prose naming an API, symbol or call sequence the implementation must use, with no covering AC and no out-of-scope release; covers third-party and standard-library APIs, which the seam checks in Phases 5 and 8 do not reach | per named API | major |
+| P4.8 | Adversarial-scope gap | a risk-sensitive story (auth, rate limiting, replay/MFA, idempotency/dedup, tenancy, concurrency, expiry, crypto) leaving a canonical risk property of its domain neither pinned by a property-style AC nor named out of scope — a partial Out-of-scope section does not cover what it does not name | per property | major |
+| P4.9 | Fixture-shape derivability | an AC asserting a fixture property that does not follow from the spec's stated generation procedure, or that the spec never says how to build | per asserted property | blocker |
+| P4.10 | Constant-value derivability | a constant an AC's behaviour depends on, with no value stated and none explicitly delegated; or several constants bounding one quantity with no stated satisfiability relation | per constant / per relation | blocker |
+| P4.11 | Shipped-claim reality | "already shipped" / "DONE" code whose main functions have zero callers outside the defining file — ships in name only (caller reachability; contradiction with observable git state is Phase 6's blocker, a different check) | per claim | major |
 
-**Blocker:** spec prose describes different semantics than the code implements (e.g. "rejects uncited PRD claims" when the code measures manifest verification rate); an AC whose behaviour depends on a constant the spec neither values nor delegates, or a set of constants bounding one quantity with no stated satisfiability relation; two ACs that read literally demand opposite outputs for the same input.
-**Major:** under-specified input class; an undefined interaction between two individually-pinned thresholds on one function; adversarial-scope gap on a risk-sensitive story; a `### Failure Handling` row with neither a covering AC nor an out-of-scope entry (the planner authors it instead, in its own words); a Design-prose API or call-sequence mandate with neither a covering AC nor an out-of-scope entry in its owning story. A Design listing of a mutated symbol's pre-change signature with no target shape stated alongside it.
+**Blocker:** a P4.1 decision-logic mismatch downstream code depends on; any P4.2 mismatch; P4.9 or P4.10 underivability; a P4.5 pair whose ACs are jointly unsatisfiable.
+**Major:** every other finding in the table, except where the checklist grades a case lower (P4.1's cosmetic prose drift is minor).
 
 ### Phase 5 — Sizing & hygiene
 
@@ -223,8 +235,10 @@ Produce a single markdown report:
 **Verdict:** ✅ ready / ⚠️ revisions needed / ❌ major rework
 
 ## Summary
-- Phase 1: <N blockers, M majors, K minors>
-- Phase 2: <...>
+- Phase 1: <items examined, e.g. "47 symbols + 3 data literals"> — <N blockers, M majors, K minors>
+- Phase 2: <shape claims verified + mutated shapes swept for closed-world assertions> — <...>
+- Phase 3: <rule files loaded + spec code blocks checked> — <...>
+- Phase 4: <per check P4.1–P4.11, each with its unit-of-account count> — <...>
 - ...
 
 ## Phase 1 — Symbol Existence
@@ -251,6 +265,12 @@ Each finding must include:
 2. **Spec reference** — section name + line number when possible
 3. **Codebase reality** — what was found (or not) and where
 4. **Recommended fix** — one sentence, actionable
+
+### Evidence discipline (mandatory)
+
+Every phase line in the Summary carries the count of items it examined, in that phase's unit of account: symbols and data literals (Phase 1); shape claims verified and mutated shapes swept (Phase 2); rule files loaded and code blocks checked (Phase 3); per-`P4.n` items (Phase 4 — claims, mutated symbols, dimensions, pairs, rows, named APIs, properties, constants); stories and ACs counted (Phase 5); shipped/DONE/MODIFY-additive claims (Phase 6); ACs classified (Phase 7); seams and removal keywords walked (Phase 8); spec↔PRD AC matches and file-role entries (Phase 9). A finding count without a denominator is not evidence of a clean phase — "0 blockers" over an unstated sample is indistinguishable from a thorough pass, and the checks most worth gaming are exactly the per-item ones.
+
+The ✅ ready verdict may be emitted **only when every executed phase's Summary line carries its examined-item counts.** A phase line without denominators makes the audit incomplete — complete the enumeration (or record it), never soften the verdict text around the gap.
 
 ### Severity definitions
 
