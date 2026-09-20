@@ -188,6 +188,16 @@ Checks:
    field the planner does not author — verify nothing outside `modifiedFiles`
    changed before accepting such a patch.
 
+9. **Forward-reference drift re-sweep.** Re-run Phase 1's Step 6b consistency
+   sweep over the PRD's `acceptanceCriteria` (and `description` Interface blocks).
+   `nax plan` splits compound ACs atomically and rewords criteria, so it can
+   introduce a spelling drift the spec never had — a criterion that names
+   `renderSummaryTable` where the spec and every other story say `renderSummary`.
+   Each drifted symbol is **major**: the implementer session receives only its own
+   story, so nothing downstream reconciles the two spellings. The fix is an
+   in-place PRD patch of the affected `acceptanceCriteria` entry (verbatim
+   otherwise), not a re-plan.
+
 **Blocker:** spec AC missing from PRD; behavioural AC degraded into a
 file-content/grep AC or stripped of its asserted behaviour; meta-AC deleted;
 orphan PRD AC introducing material scope; terminal-cleanup story missing or

@@ -59,7 +59,10 @@ See [checklists/phase-1-symbol-existence.md](checklists/phase-1-symbol-existence
 
 Extract every named symbol (file path, function, type, constant, config key) the spec mentions. For each, verify it either already exists OR is explicitly listed in the spec's "Remaining work" / "New code" section. Also extract **data literals** — quoted filenames, URLs and magic strings the feature consumes rather than defines. These need a different lookup (fixtures, a documented source, or the new-work table), because a `src/ test/` grep legitimately returns nothing for them and so proves nothing.
 
+Also runs the **forward-reference consistency sweep**: every allowlisted symbol must be spelled byte-identically at every mention across stories' ACs, `### Seams`, and `Creates` lists. Two forward references that are near-miss variants of one another (case or affix — `renderSummary` vs `renderSummaryTable`) are presumed one intended symbol drifted: both pass the existence check, and because stories execute as isolated sessions, the drift ships as an integration failure rather than a review comment.
+
 **Blocker:** any symbol that exists in neither the codebase nor the spec's new-work table; any data literal that traces to no fixture, no documented source, and no new-work entry.
+**Major:** a forward-referenced symbol spelled differently across stories (near-miss variants presumed drifted; if the spec genuinely means two symbols, it must say so where they meet).
 **Output:** an allowlist of forward-references (symbols the spec is creating) for later phases.
 
 ### Phase 2 — Shape audit
@@ -105,10 +108,10 @@ See [checklists/phase-4-behavioral-semantic.md](checklists/phase-4-behavioral-se
 
 See [checklists/phase-5-sizing-hygiene.md](checklists/phase-5-sizing-hygiene.md).
 
-Mechanical: AC counts per story, story counts, duplicate detection, story name ↔ body alignment, dependency DAG validity, required sections present, and **`## Out of Scope` machine-extractability** (recognised heading, one self-contained bullet per exclusion — `nax plan` parses this section into `prd.outOfScope`, and an unrecognised shape is silently dropped).
+Mechanical: AC counts per story, story counts, duplicate detection, story name ↔ body alignment, dependency DAG validity, required sections present, **`## Out of Scope` machine-extractability** (recognised heading, one self-contained bullet per exclusion — `nax plan` parses this section into `prd.outOfScope`, and an unrecognised shape is silently dropped), and **placeholder sentinels in channel-reaching text** (`TBD`/`TODO`/`FIXME`/`???`, `handle … appropriately`/`as appropriate`, a trailing `etc.` in an AC, `similar to US-00N`, unnamed `add validation`/`add error handling` — in Stories/Design prose, AC bullets, Out-of-Scope bullets, or Modifies reasons, all of which are carried into the implementer prompt; a bare `TBD`/`None.`/`N/A` as the entire Out-of-Scope body is extractor-filtered and exempt).
 
 **Blocker:** AC count exceeds project cap (load from `config.precheck.storySizeGate.maxAcCount` or default 15).
-**Major:** missing required section; a deferral stated only in prose with no extractable `## Out of Scope` section.
+**Major:** missing required section; a deferral stated only in prose with no extractable `## Out of Scope` section; a placeholder sentinel in channel-reaching text.
 
 ### Phase 6 — Stale-reference sweep
 
@@ -139,10 +142,10 @@ Walks Design and Stories for producer/consumer seams and removal patterns. Every
 
 See [checklists/phase-9-prd-fidelity.md](checklists/phase-9-prd-fidelity.md).
 
-Diffs `prd.json` against the spec to detect drift introduced by `nax plan`: AC survival and behavioural degradation, story/dependency mapping, context-vs-expected file placement, meta-AC survival, **correction survival** (a spec-review correction must reach a `description` or an `acceptanceCriteria` entry — `analysis`, `storyPoints`, and `tags` are read by nothing and are not evidence), **PRD-AC satisfiability** (re-run the Class B trace over PRD invocation ACs, since `nax plan` splits compound ACs that Phase 8 never saw), out-of-scope preservation including the `US-00N only:` prefix rule, and terminal-cleanup integrity.
+Diffs `prd.json` against the spec to detect drift introduced by `nax plan`: AC survival and behavioural degradation, story/dependency mapping, context-vs-expected file placement, meta-AC survival, **correction survival** (a spec-review correction must reach a `description` or an `acceptanceCriteria` entry — `analysis`, `storyPoints`, and `tags` are read by nothing and are not evidence), **PRD-AC satisfiability** (re-run the Class B trace over PRD invocation ACs, since `nax plan` splits compound ACs that Phase 8 never saw), **forward-reference drift re-sweep** (re-run Phase 1's consistency sweep over the PRD's `acceptanceCriteria` — atomic AC splitting rewords criteria and can introduce spelling drift the spec never had), out-of-scope preservation including the `US-00N only:` prefix rule, and terminal-cleanup integrity.
 
 **Blocker:** spec AC missing from PRD; behavioural AC degraded or stripped of its assertion; meta-AC deleted; orphan PRD AC introducing material scope; terminal-cleanup story missing or contaminated; self-`Creates` file in `contextFiles`; spec out-of-scope statement missing, inverted into an AC, or contradicted by a story.
-**Major:** upstream-produced `Context Files` entry dropped or mis-moved; a story-scoped deferral hoisted without a `US-00N only:` prefix; a correction present only in `analysis`; a spec `### Modifies` path with no `modifiedFiles` entry of its own (count paths, not bullets — a multi-path bullet authorises only its first).
+**Major:** upstream-produced `Context Files` entry dropped or mis-moved; a story-scoped deferral hoisted without a `US-00N only:` prefix; a correction present only in `analysis`; a spec `### Modifies` path with no `modifiedFiles` entry of its own (count paths, not bullets — a multi-path bullet authorises only its first); a forward-referenced symbol whose spelling drifted between the spec and a PRD acceptance criterion, or between two stories' PRD criteria.
 ## Operational rules
 
 ### PRD file-role schema (Phase 9)
@@ -268,7 +271,7 @@ Each finding must include:
 
 ### Evidence discipline (mandatory)
 
-Every phase line in the Summary carries the count of items it examined, in that phase's unit of account: symbols and data literals (Phase 1); shape claims verified and mutated shapes swept (Phase 2); rule files loaded and code blocks checked (Phase 3); per-`P4.n` items (Phase 4 — claims, mutated symbols, dimensions, pairs, rows, named APIs, properties, constants); stories and ACs counted (Phase 5); shipped/DONE/MODIFY-additive claims (Phase 6); ACs classified (Phase 7); seams and removal keywords walked (Phase 8); spec↔PRD AC matches and file-role entries (Phase 9). A finding count without a denominator is not evidence of a clean phase — "0 blockers" over an unstated sample is indistinguishable from a thorough pass, and the checks most worth gaming are exactly the per-item ones.
+Every phase line in the Summary carries the count of items it examined, in that phase's unit of account: symbols and data literals (Phase 1); shape claims verified and mutated shapes swept (Phase 2); rule files loaded and code blocks checked (Phase 3); per-`P4.n` items (Phase 4 — claims, mutated symbols, dimensions, pairs, rows, named APIs, properties, constants); stories, ACs, and channel-reaching surfaces swept (Phase 5); shipped/DONE/MODIFY-additive claims (Phase 6); ACs classified (Phase 7); seams and removal keywords walked (Phase 8); spec↔PRD AC matches, file-role entries, and forward-references re-swept (Phase 9). A finding count without a denominator is not evidence of a clean phase — "0 blockers" over an unstated sample is indistinguishable from a thorough pass, and the checks most worth gaming are exactly the per-item ones.
 
 The ✅ ready verdict may be emitted **only when every executed phase's Summary line carries its examined-item counts.** A phase line without denominators makes the audit incomplete — complete the enumeration (or record it), never soften the verdict text around the gap.
 

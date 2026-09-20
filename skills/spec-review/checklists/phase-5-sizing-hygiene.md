@@ -148,10 +148,45 @@ check is what reads it.
 Flag the following AC patterns as **MINOR** (these are smells, not always wrong):
 
 - ACs containing " and " (often two assertions, should split)
-- ACs containing "correctly" / "properly" / "appropriately" (vague verbs)
+- ACs containing "correctly" / "properly" / "appropriately" (vague verbs) — a vague verb already reported by Step 9b (`handle … appropriately/properly`, `as appropriate`) is reported once, at Step 9b's MAJOR; do not re-report it here
 - ACs containing "tests pass" / "test file exists" (meta-criteria, not behavior)
 - ACs containing "compiles" / "no type errors" (quality gates, run automatically)
 - ACs containing "is valid" without specifying what makes it valid
+
+## Step 9b — Placeholder sentinels in channel-reaching text
+
+Four surfaces of the spec are carried into the implementer prompt verbatim or
+near-verbatim: Stories/Design prose (synthesised into the story's `description`),
+AC bullets (`acceptanceCriteria`), `## Out of Scope` bullets (verbatim-backfilled),
+and `### Modifies` reasons (copied verbatim). A placeholder in any of them ships
+as an instruction — and as an ungroundable quote surface for reviewers. These are
+legal markdown and extract cleanly, so `nax spec lint` never flags them.
+
+```bash
+grep -nEi 'TBD|TODO|FIXME|\?\?\?|as appropriate|handle [a-z ]*(appropriately|properly)|similar to US-0|same as US-0|add (validation|error handling)([^a-z]|$)' <spec-path>
+```
+
+The trailing-`etc.` sentinel is **not** in the grep — a line grep cannot scope it
+to AC bullets, and `etc.` is legitimate in ordinary prose. Check it as a read-pass
+over AC bullets only.
+
+For each hit, check it sits in one of the four surfaces (a hit inside a fenced
+example block or the Motivation section is not a finding). Flag **MAJOR** per hit,
+**except** where the surrounding sentence already names the input, the error type,
+and the observable behaviour — the `add validation` / `add error handling`
+sentinels target unpinned negative space, not the verb — and **except** a bare
+`TBD`/`None.`/`N/A` as the *entire* `## Out of Scope` body, which the extractor
+filters as "nothing deferred" (Step 8b's safe list; prefer `None.` per the guide):
+
+| Sentinel | Why it blocks downstream |
+|:---|:---|
+| `TBD` / `TODO` / `FIXME` / `???` | ships to the implementer as literal instruction text (bare whole-body Out-of-Scope sentinel exempt, per above) |
+| `handle … appropriately/properly`, `as appropriate` | the reviewer and implementer each invent a different "appropriate" |
+| trailing `etc.` inside an AC (read-pass, not grep) | an et-cetera cannot be tested; enumerate or defer to Out-of-scope |
+| `similar to US-00N` / `same as US-00N` | stories execute in isolated sessions — the reader may never see US-00N |
+| `add validation` / `add error handling` with no named input, error type, or behaviour | unpinned negative space both reviewers arbitrate in contradictory directions |
+
+Worked example (invented). A `### Modifies` bullet reads `` `test/report/render.test.py` — update affected tests as appropriate ``. The path extracts fine, lint passes, and the implementer prompt now carries an authorisation whose scope is "as appropriate" — the reviewer holds it to one reading, the implementer to another. The fix names the assertion and its replacement invariant, per the Modifies contract.
 
 ## Finding template
 
