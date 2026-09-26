@@ -143,9 +143,10 @@ the gate runs when that chain runs) executes `scripts/eval-mechanical.mjs`,
 which mirrors the documented grep/awk procedures — a fixture fails when its
 expected check does not fire, or when anything unexpected fires, on any fixture.
 
-Coverage today is **five of the mechanical checks** (Step 8b Out-of-Scope shape,
+Coverage today is **six of the mechanical checks** (Step 8b Out-of-Scope shape,
 Step 9b placeholder sentinels, Phase 7 banned tags, the marker-placement rule,
-the Modifies one-file-per-bullet rule) — not the whole mechanical surface (AC
+the Modifies one-file-per-bullet rule, Step 7b no `Creates`/`Modifies` entry under
+`.nax/`) — not the whole mechanical surface (AC
 caps, duplicate ACs, required sections, and the Phase 6 shell greps are not yet
 fixtured). **Ratchet:** a PR that adds or edits a mechanical check ships or
 updates its fixture in the same PR; the runner's header comment maps each check

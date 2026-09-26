@@ -44,6 +44,7 @@ These thoughts mean stop — you are rationalizing:
 | "The `[unit]` tag makes the mechanism clear" | The planner strips tags from ~97% of ACs. The mechanism must be legible from the AC's prose alone. |
 | "'Update affected tests' covers the Modifies entry" | The reason text is carried verbatim into the implementer prompt. A summary destroys the authorisation's specificity. |
 | "Two paths in one Modifies bullet saves space" | The extractor takes only the leading backticked path; the second is swallowed and never authorised. |
+| "The story can just update `.nax/rules/` too" | `.nax/` is read-only to the run (only `.nax/scratchpad/` is writable). A `.nax/` change is a manual step recorded in `## Out of Scope`, never a story's work. |
 | "The guide says 15 ACs, so 15 is the cap" | The host's `maxAcCount` ranges 6–24 across real projects. Resolve it in Pre-flight and size against that. |
 | "spec-review will catch it downstream" | Phase 6's own sweep is the primary gate; spec-review is defense-in-depth, not a backstop for known debt. |
 | "It grew mid-draft, but I'm nearly done" | The ratchet is one-way: scale discovered mid-draft upgrades the Step 0 classification. Stop, split, re-enter. |
@@ -422,6 +423,10 @@ For each hit, rewrite the AC into the runtime behaviour it is meant to prove, us
 #### Constraint-route materialization (same gate)
 
 Re-read the routes recorded in Phase 2. Each routed constraint must now exist at its destination: the `## Out of Scope` bullet present, the AC drafted, the `### Modifies` entry written, or the rule-store edit made with its one-line Design pointer. A route recorded and never materialized is a **blocker** — fix in-file before handoff. This is the silent loss the routing step exists to prevent; do not leave it for spec-review's Step 8c.
+
+#### `.nax/` write sweep (same gate)
+
+Every `### Creates` and `### Modifies` entry must sit outside `.nax/`, except `.nax/scratchpad/`, and no AC or story text may have a `.nax/` edit as its outcome. The guide's § Paths under `.nax/` are read-only to the run explains why. `Context Files` entries under `.nax/` are reads and are fine. Each hit is a blocker: move the change out of the run as a manual step recorded in `## Out of Scope`, or cite the project's write opt-in in Design. `nax spec lint` does not flag this, so this sweep is the primary gate, and spec-review Phase 5 Step 7b re-checks it.
 
 #### Placeholder-sentinel sweep (same gate, second list)
 
