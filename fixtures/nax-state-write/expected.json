@@ -1,0 +1,1 @@
+{ "mustFire": ["nax-state-write"], "description": "A Modifies entry under .nax/ — nax state the implementing agent may not write; the run is refused or the story cannot pass." }

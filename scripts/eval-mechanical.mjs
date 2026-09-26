@@ -16,6 +16,10 @@
 //   modifies-multipath       -> spec-writing guide "one file per bullet" (Modifies
 //                               contract; a bullet's indented continuation lines
 //                               belong to the same logical bullet)
+//   nax-state-write          -> spec-review checklists/phase-5-sizing-hygiene.md Step 7b
+//                               + spec-writing guide "Paths under .nax/ are read-only
+//                               to the run" (Creates/Modifies only; Context Files
+//                               reads and .nax/scratchpad/ are allowed)
 //
 // Contract: every fixtures/<name>/ directory carries spec.md + expected.json
 // ({ mustFire: [checkId...] }). A fixture fails when the fired set differs from
@@ -130,6 +134,21 @@ const CHECKS = {
       else if (/^\s+\S/.test(l) && bullets.length) bullets[bullets.length - 1] += ` ${l.trim()}`;
     }
     return bullets.some((b) => (b.match(/`[^`]+\.[a-z0-9]+`/gi) ?? []).length >= 2);
+  },
+
+  "nax-state-write": (rawLines) => {
+    const clean = withoutFences(rawLines);
+    let inWriteList = false;
+    for (const l of clean) {
+      if (/^#{1,4} /.test(l)) {
+        inWriteList = /^#{2,4} *(Creates|Modifies)\b/i.test(l);
+        continue;
+      }
+      if (!inWriteList) continue;
+      const path = l.match(/^\s*(?:[-*+]|\d+\.)\s*`(?:\.\/)?([^`]+)`/)?.[1];
+      if (path !== undefined && /^\.nax\//.test(path) && !/^\.nax\/scratchpad\//.test(path)) return true;
+    }
+    return false;
   },
 };
 

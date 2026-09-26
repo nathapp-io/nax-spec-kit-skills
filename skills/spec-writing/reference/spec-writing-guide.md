@@ -479,6 +479,42 @@ Being listed here is permission, not a task: an implementer touches the file onl
 if its change actually requires it. And it is not a substitute for an
 out-of-scope entry — a deferral does not authorise anything.
 
+### Paths under `.nax/` are read-only to the run
+
+`.nax/` is nax's own state: configuration, rules, context, every feature's PRD
+and spec, and the running feature's session and story artefacts. nax tells every
+implementing agent not to create, change, move or delete anything there except
+its scratchpad, `.nax/scratchpad/`. It also refuses agent writes to
+`.nax/config.json`, `.nax/mono/` and every `prd.json` outright; nax#2260
+proposes extending that refusal to the whole tree.
+
+So a spec must never ask the implementing agent to write there:
+
+- **No `Creates` or `Modifies` entry under `.nax/`.** The story either fails on a
+  refused write or passes review only because its `.nax/` change was skipped.
+  `.nax/scratchpad/` is the one exception, and it never needs listing: it is
+  throwaway and never committed.
+- **No AC or story text whose outcome is a `.nax/` edit** ("remove the obsolete
+  rule from `.nax/rules/`", "update `.nax/context.md`").
+- **Reading is fine.** A `.nax/rules/` file or a sibling feature's spec under
+  `Context Files` is an ordinary read.
+- **The product may write `.nax/` paths.** A spec for a tool whose own code writes
+  under `.nax/` is not affected: the implementer writes that code, and its tests
+  exercise it in a temporary directory, never in the repo's own `.nax/`.
+
+When the feature genuinely needs a `.nax/` change, take it out of the run:
+
+- A human makes it before or after the run. Record it as a `## Out of Scope`
+  bullet so no story attempts it: `- Updating .nax/rules/retry-policy.md is a
+  manual step after this feature merges; no story edits .nax/.`
+- Or, where the project has granted write access to that path in its nax
+  configuration (the opt-in nax#2260 proposes, under the proposed key
+  `sandbox.filesystem.allowWrite`), cite the config line in Design so a
+  reviewer can verify the permission exists.
+
+A rule-store route from § Constraint routing is the same case: the rule edit is
+proposed to the user and made by the spec author, never by a story.
+
 ## Workdir (monorepo, required)
 
 In a **workspace monorepo** every story **must** declare a `Workdir` — the single

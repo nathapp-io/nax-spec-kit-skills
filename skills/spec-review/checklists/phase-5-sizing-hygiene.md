@@ -82,6 +82,39 @@ Per spec-writing.md, every story MUST list Context Files. Verify:
 
 Missing context block → **MAJOR**.
 
+## Step 7b — No story writes under `.nax/`
+
+`.nax/` is read-only to the implementing agent; only `.nax/scratchpad/` is
+writable (spec-writing guide § Paths under `.nax/` are read-only to the run).
+nax refuses agent writes to its config and PRDs outright; nax#2260 proposes
+extending that to the whole tree. A story that must write there either fails on the
+refused write or passes review with the change silently skipped.
+
+Mechanical pass over the `### Creates` and `### Modifies` sections: flag every
+bullet whose leading backticked path starts with `.nax/` and not
+`.nax/scratchpad/`.
+
+```bash
+awk '/^#{1,4} /{w = ($0 ~ /^#{2,4} *(Creates|Modifies)/)} w && /^[[:space:]]*([-*+]|[0-9]+\.)[[:space:]]*`(\.\/)?\.nax\// && !/^[[:space:]]*([-*+]|[0-9]+\.)[[:space:]]*`(\.\/)?\.nax\/scratchpad\//' <spec-path>
+```
+
+Then a read-pass over AC bullets and story prose for an outcome that is a `.nax/`
+edit ("removes the obsolete rule from `.nax/rules/`", "updates
+`.nax/context.md`"). Not findings:
+
+- `Context Files` entries under `.nax/` — reads are allowed.
+- A spec for code whose *product behaviour* writes `.nax/` paths, tested in a
+  temporary directory — the agent writes the code, not the repo's own `.nax/`.
+- A `.nax/` directory nested under another path, such as a test-fixture project
+  (`test/fixtures/<project>/.nax/config.json`). It is ordinary content, which is
+  why the mechanical pass matches only a leading `.nax/`. A monorepo package's own
+  `.nax/` is judged in the read-pass.
+- A `.nax/` change recorded as a manual step in `## Out of Scope`, or one covered
+  by a write opt-in the spec cites from the project's nax configuration.
+
+Each hit → **BLOCKER** (the story cannot complete as written). Fix: move the
+change out of the run as a manual `## Out of Scope` step, or cite the opt-in.
+
 ## Step 8 — Required sections present
 
 Per spec-writing.md, every spec must have:
@@ -230,6 +263,7 @@ Worked example (invented). A `### Modifies` bullet reads `` `test/report/render.
 - Stale duplicate AC from a `complete` → `run` refactor (`build returns { prompt }` left over)
 - Story dependencies forming an implicit cycle through context-file references
 - Missing Context Files section for a late-added story
+- A `### Modifies` entry for `.nax/rules/<file>.md` so the story "keeps the rule in sync" — nax state is read-only to the run; the rule edit is a manual Out-of-Scope step
 - ACs containing meta-criteria ("tests pass") that should be removed
 - Vague-verb ACs ("handles correctly")
 - A deferral stated only in Design prose, with no `## Out of Scope` section — `nax plan` extracts nothing, and the implementer is free to build the deferred arc
