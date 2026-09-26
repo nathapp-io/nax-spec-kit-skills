@@ -485,8 +485,8 @@ out-of-scope entry — a deferral does not authorise anything.
 and spec, and the running feature's session and story artefacts. nax tells every
 implementing agent not to create, change, move or delete anything there except
 its scratchpad, `.nax/scratchpad/`. It also refuses agent writes to
-`.nax/config.json`, `.nax/mono/` and every `prd.json` outright, and nax#2260
-extends that refusal to the whole tree.
+`.nax/config.json`, `.nax/mono/` and every `prd.json` outright; nax#2260
+proposes extending that refusal to the whole tree.
 
 So a spec must never ask the implementing agent to write there:
 
@@ -508,8 +508,9 @@ When the feature genuinely needs a `.nax/` change, take it out of the run:
   bullet so no story attempts it: `- Updating .nax/rules/retry-policy.md is a
   manual step after this feature merges; no story edits .nax/.`
 - Or, where the project has granted write access to that path in its nax
-  configuration (the opt-in nax#2260 proposes), cite the config line in Design
-  so a reviewer can verify the permission exists.
+  configuration (the opt-in nax#2260 proposes, under the proposed key
+  `sandbox.filesystem.allowWrite`), cite the config line in Design so a
+  reviewer can verify the permission exists.
 
 A rule-store route from § Constraint routing is the same case: the rule edit is
 proposed to the user and made by the spec author, never by a story.

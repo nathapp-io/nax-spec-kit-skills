@@ -86,8 +86,8 @@ Missing context block → **MAJOR**.
 
 `.nax/` is read-only to the implementing agent; only `.nax/scratchpad/` is
 writable (spec-writing guide § Paths under `.nax/` are read-only to the run).
-nax refuses agent writes to its config and PRDs outright, and nax#2260 extends
-that to the whole tree. A story that must write there either fails on the
+nax refuses agent writes to its config and PRDs outright; nax#2260 proposes
+extending that to the whole tree. A story that must write there either fails on the
 refused write or passes review with the change silently skipped.
 
 Mechanical pass over the `### Creates` and `### Modifies` sections: flag every
@@ -95,7 +95,7 @@ bullet whose leading backticked path starts with `.nax/` and not
 `.nax/scratchpad/`.
 
 ```bash
-awk '/^#{1,4} /{w = ($0 ~ /^#{2,4} *(Creates|Modifies)/)} w && /^[[:space:]]*([-*+]|[0-9]+\.)[[:space:]]*`(\.\/)?\.nax\// && !/`(\.\/)?\.nax\/scratchpad\//' <spec-path>
+awk '/^#{1,4} /{w = ($0 ~ /^#{2,4} *(Creates|Modifies)/)} w && /^[[:space:]]*([-*+]|[0-9]+\.)[[:space:]]*`(\.\/)?\.nax\// && !/^[[:space:]]*([-*+]|[0-9]+\.)[[:space:]]*`(\.\/)?\.nax\/scratchpad\//' <spec-path>
 ```
 
 Then a read-pass over AC bullets and story prose for an outcome that is a `.nax/`
@@ -105,6 +105,10 @@ edit ("removes the obsolete rule from `.nax/rules/`", "updates
 - `Context Files` entries under `.nax/` — reads are allowed.
 - A spec for code whose *product behaviour* writes `.nax/` paths, tested in a
   temporary directory — the agent writes the code, not the repo's own `.nax/`.
+- A `.nax/` directory nested under another path, such as a test-fixture project
+  (`test/fixtures/<project>/.nax/config.json`). It is ordinary content, which is
+  why the mechanical pass matches only a leading `.nax/`. A monorepo package's own
+  `.nax/` is judged in the read-pass.
 - A `.nax/` change recorded as a manual step in `## Out of Scope`, or one covered
   by a write opt-in the spec cites from the project's nax configuration.
 
