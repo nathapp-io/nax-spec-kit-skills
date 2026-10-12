@@ -9,7 +9,8 @@
     "verify:codex-skills": "node scripts/verify-codex-plugin-skills.mjs",
     "test:codex-marketplace": "node scripts/verify-codex-marketplace.mjs",
     "test:fixtures": "node scripts/eval-mechanical.mjs",
-    "prepare:codex-release": "npm run sync:codex-skills && npm run verify:codex-skills && npm run test:codex-marketplace && npm run test:fixtures"
+    "prepare:codex-release": "npm run sync:codex-skills && npm run verify:codex-skills && npm run test:codex-marketplace && npm run test:fixtures",
+    "test:opencode": "node scripts/verify-opencode-plugin.mjs"
   },
   "homepage": "https://github.com/nathapp-io/nax-spec-kit-skills",
   "repository": {
@@ -20,5 +21,9 @@
   "author": {
     "name": "William Khoo",
     "email": "william_khoo@outlook.com"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./v1": "./.opencode/plugins/nax-spec-kit.js"
   }
 }

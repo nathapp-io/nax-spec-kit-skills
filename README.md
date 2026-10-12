@@ -156,3 +156,10 @@ tracing) need an LLM reviewer and are deliberately out of this corpus's scope.
 ## License
 
 MIT — see [LICENSE](./LICENSE).
+
+### OpenCode version compatibility
+
+OpenCode **2.0.4+** uses the `plugins` key and the root `index.js` directory entry.
+OpenCode **1.x** retains the named plugin export and config hook. See
+[OpenCode installation](.opencode/INSTALL.md) for examples, including older V1
+releases. Run `npm run test:opencode` to check both API contracts.
