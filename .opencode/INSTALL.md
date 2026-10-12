@@ -4,10 +4,32 @@
 
 - [OpenCode.ai](https://opencode.ai) installed
 
-## Installation
+## OpenCode 2.0 (2.0.4 or newer)
 
-Add nax-spec-kit to the `plugin` array in your `opencode.json` (global or
+Add the package to the plural `plugins` array in `opencode.json` (global or
 project-level):
+
+```json
+{
+  "plugins": ["git+https://github.com/nathapp-io/nax-spec-kit-skills.git"]
+}
+```
+
+For a local checkout, use its package directory containing `index.js`:
+
+```json
+{
+  "plugins": ["file:///absolute/path/to/nax-spec-kit-skills"]
+}
+```
+
+The default definition registers all bundled skills through `ctx.skill.transform`.
+Skill paths point to the installed `SKILL.md` files so references remain available.
+
+## OpenCode 1.x
+
+For **1.18.29 and newer**, the same package exposes a `server()` implementation.
+Use the singular `plugin` key:
 
 ```json
 {
@@ -15,24 +37,21 @@ project-level):
 }
 ```
 
-Restart OpenCode. The plugin installs through OpenCode's plugin manager and
-registers the spec-writing and spec-review skills.
-
-Verify by asking: "use skill tool to list skills" — you should see
-`spec-writing` and `spec-review`.
-
-> OpenCode uses its own plugin install. If you also use Claude Code, Codex, or
-> Cursor, install nax-spec-kit separately for each one.
-
-## Local development install
-
-Point OpenCode at a local checkout instead of a git URL:
+For **older 1.x releases**, clone this repository and point directly at the
+legacy function entry (requires a release with native `skills.paths` support):
 
 ```json
 {
-  "plugin": ["/home/<you>/path/to/nax-spec-kit"]
+  "plugin": ["file:///absolute/path/to/nax-spec-kit-skills/.opencode/plugins/nax-spec-kit.js"]
 }
 ```
+
+This entry remains available as the package subpath `nax-spec-kit/v1`.
+The V1 config hook adds the bundled skills directory while preserving existing
+skill paths and URLs.
+
+Restart OpenCode after installing. Ask it to load `spec-writing` using its native
+skill tool to verify discovery. Install separately for Claude Code, Codex, or Cursor.
 
 ## Usage
 
@@ -41,10 +60,9 @@ Use OpenCode's native `skill` tool:
 ```
 use skill tool to list skills
 use skill tool to load spec-writing
-use skill tool to load spec-review
 ```
 
-Or just say "draft the spec for X" / "review this spec against the codebase".
+Or just say "set up nax for this repo" / "configure nax for this project".
 
 ## Updating
 
@@ -53,11 +71,11 @@ versions pin the resolved git dependency in a lockfile or cache, so a restart
 may not pick up the newest commit. If updates do not appear, clear OpenCode's
 package cache or reinstall the plugin.
 
-To pin a specific version:
+To pin a specific version on V2 (use `plugin` on V1):
 
 ```json
 {
-  "plugin": ["nax-spec-kit@git+https://github.com/nathapp-io/nax-spec-kit-skills.git#v0.1.3"]
+  "plugins": ["git+https://github.com/nathapp-io/nax-spec-kit-skills.git#<tag-or-commit>"]
 }
 ```
 
@@ -65,7 +83,7 @@ To pin a specific version:
 
 ### Plugin not loading
 
-1. Check logs: `opencode run --print-logs "hello" 2>&1 | grep -i spec-kit`
+1. Check logs: `opencode run --print-logs "hello" 2>&1 | grep -i toolkit`
 2. Verify the plugin line in your `opencode.json`
 3. Make sure you're running a recent version of OpenCode
 
@@ -81,3 +99,14 @@ When skills reference Claude Code tools, substitute OpenCode equivalents:
 - `Task` with subagents → OpenCode's subagent system (`@mention`)
 - `Skill` tool → OpenCode's native `skill` tool
 - `Read`, `Write`, `Edit`, `Bash` → your native tools
+
+## Compatibility checks
+
+Run `npm run test:opencode` to verify V2 registration, transform replay, and both
+V1 entrypoints. The shared default export follows the
+[official V1/V2 migration pattern](https://dev.opencode.ai/v2/docs/build/plugins/migrate-v1).
+These are API contract checks; validate a release in each target OpenCode runtime
+before publishing.
+
+The dependency-free named V1 export and default V2 definition follow
+[Superpowers](https://github.com/obra/superpowers/blob/main/.opencode/plugins/superpowers.js).
