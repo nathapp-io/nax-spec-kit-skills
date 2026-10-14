@@ -15,4 +15,3 @@ Depends on us-002, US-001, US-001.
 The test depends on US-099's old registration.
 ## Acceptance Criteria
 ### US-003
-

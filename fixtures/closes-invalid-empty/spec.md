@@ -1,5 +1,5 @@
 # SPEC: Declaration regression
 
-Closes: 
+Closes:
 ## Summary
 Related issue context.
