@@ -21,8 +21,13 @@
 //                               to the run" (Creates/Modifies only; Context Files
 //                               reads and .nax/scratchpad/ are allowed)
 //
+//   dependency-missing / dependency-conflict
+//                            -> spec-review Phase 5 Step 6, spec-writing Phase 6
+//   closes-invalid           -> spec-review Phase 5 Step 6b (token syntax only)
+//   dependency-fidelity      -> spec-review Phase 9 §3b (optional prd.json input)
+//
 // Contract: every fixtures/<name>/ directory carries spec.md + expected.json
-// ({ mustFire: [checkId...] }). A fixture fails when the fired set differs from
+// ({ mustFire: [checkId...] }), and optionally prd.json for Phase 9. A fixture fails when the fired set differs from
 // mustFire in EITHER direction — control-clean (mustFire: []) is what guards
 // against over-firing. Judgment checks (P4.n, Step 8c, seam tracing) are out of
 // scope here: they need an LLM reviewer (Tier 2, not built). Not every
@@ -72,7 +77,77 @@ function blankSection(lines, headingRe) {
   return lines.map((l, i) => (i >= start && i < end ? "" : l));
 }
 
+/**
+ * Fixture-only reader for the documented canonical declaration forms. This is
+ * not a replacement for nax's full grammar or spec-review's semantic DAG pass.
+ * Scope matches the guide: Stories only, no fences or grouped file reasons.
+ */
+function dependencyDeclarations(rawLines) {
+  const stories = new Map();
+  let inStories = false;
+  let grouped = false;
+  let current;
+  for (const raw of withoutFences(rawLines)) {
+    const line = raw.replace(/\*\*|__|`/g, "");
+    if (/^##\s+Stories\b/i.test(line)) {
+      inStories = true;
+      continue;
+    }
+    if (/^#{1,2}\s/.test(line)) inStories = false;
+    if (!inStories) continue;
+    if (/^#{1,6}\s/.test(line)) {
+      grouped = /^#{1,6}\s*(Modifies|Modified files|Seams|Context Files|Creates)\b/i.test(line);
+    }
+    const id = (/^#{1,6}\s+(US-\d+)\b/i.exec(line)
+      ?? /^\s*(?:(?:\d+\.|[-*])\s+)?\*\*\s*(US-\d+)\b/i.exec(raw))?.[1]?.toUpperCase();
+    if (id) {
+      if (!stories.has(id)) stories.set(id, []);
+      current = stories.get(id);
+    }
+    if (!current || grouped) continue;
+    if (/\bno\s+dependencies\b/i.test(line)) current.push([]);
+    for (const mention of line.matchAll(/\bdepends\s+on\b/gi)) {
+      const rest = line.slice(mention.index + mention[0].length).replace(/^[\s:*_(]+/, "");
+      if (/^none\b/i.test(rest)) current.push([]);
+      else {
+        const list = /^(US-\d+\b(?:[\s,;&]+(?:and\s+)?US-\d+\b)*)/i.exec(rest)?.[1];
+        if (list) current.push([...new Set(list.toUpperCase().match(/US-\d+/g))].sort());
+      }
+    }
+  }
+  return stories;
+}
+
+function conflictingDependencies(lists) {
+  return new Set(lists.map((list) => JSON.stringify(list))).size > 1;
+}
+
 const CHECKS = {
+  "dependency-missing": (lines) =>
+    [...dependencyDeclarations(lines).values()].some((lists) => lists.length === 0),
+
+  "dependency-conflict": (lines) =>
+    [...dependencyDeclarations(lines).values()].some(conflictingDependencies),
+
+  "closes-invalid": (rawLines) => withoutFences(rawLines).some((line) => {
+    const declaration = /^\s*closes:(.*)$/i.exec(line);
+    if (!declaration) return false;
+    const tokens = declaration[1].split(/[\s,]+/).filter(Boolean);
+    return tokens.length === 0 || tokens.some((token) => !/^#\d+$/.test(token));
+  }),
+
+  "dependency-fidelity": (lines, prd) => {
+    if (prd === undefined) return false;
+    return [...dependencyDeclarations(lines)].some(([id, lists]) => {
+      // Unstated/conflicting spec intent is a Phase 5 finding, not an empty set.
+      if (lists.length === 0 || conflictingDependencies(lists)) return false;
+      const story = prd.userStories?.find((s) => s.id?.toUpperCase() === id);
+      if (!Array.isArray(story?.dependencies)) return true;
+      if (story.dependencies.some((dep) => typeof dep !== "string")) return true;
+      const actual = [...new Set(story.dependencies.map((dep) => dep.toUpperCase()))].sort();
+      return JSON.stringify(lists[0]) !== JSON.stringify(actual);
+    });
+  },
   "trailing-html-comment": (rawLines) => {
     const lines = withoutFences(rawLines);
     const firstHeading = lines.findIndex((l) => /^#/.test(l));
@@ -187,8 +262,19 @@ for (const name of dirs) {
     continue;
   }
   const lines = readFileSync(specPath, "utf8").split("\n");
+  let prd;
+  const prdPath = join(dir, "prd.json");
+  if (existsSync(prdPath)) {
+    try {
+      prd = JSON.parse(readFileSync(prdPath, "utf8"));
+    } catch (err) {
+      console.error(`[FAIL] ${name}: invalid prd.json (${err.message})`);
+      failures++;
+      continue;
+    }
+  }
   const fired = Object.entries(CHECKS)
-    .filter(([, check]) => check(lines))
+    .filter(([, check]) => check(lines, prd))
     .map(([id]) => id)
     .sort();
   const want = [...(expected.mustFire ?? [])].sort();

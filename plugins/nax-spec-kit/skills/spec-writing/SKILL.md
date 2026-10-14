@@ -116,6 +116,7 @@ Read the brainstorm source. Extract structured fields:
 
 - **Feature goal** — one sentence: what this does. *(required)*
 - **Motivation** — what's broken / missing / requested. *(required)*
+- **Issues fully resolved** — capture same-repository issue numbers the feature fully closes. Ask which issues it closes when the source leaves closure intent ambiguous; reuse explicit answers already supplied. Emit `Closes: #N, #M` below the title only for fully resolved issues, outside fences. Omit the line when there are none. Related or partly addressed issues stay in prose and Out of Scope (guide § `Closes:`).
 - **In-scope** — what this spec will deliver. *(required)*
 - **Out-of-scope** — what this spec explicitly defers or prohibits (feature-scoped prohibitions like "do not bump dependency X" route here — guide § Constraint routing). *(required)* This is not a
   throwaway field: it becomes the spec's `## Out of Scope` section, which `nax plan`
@@ -288,11 +289,13 @@ If the repo is a **workspace monorepo** (detected in Phase 1 — `workspaces` in
 
 `nax plan` maps each story's `Workdir` to the `workdir` field in `prd.json`, scoping the implementation session and quality gates to that package.
 
-Propose the story list with dependencies (and per-story `Workdir` when monorepo) to the user. Confirm before proceeding.
+Every story must declare `Depends on US-001[, US-002]` or `No dependencies.` (`Depends on none.` also works), on its declaring line or in its prose within `## Stories`, outside fences and outside `### Modifies` / `### Seams` / `### Context Files` / `### Creates`. `Dependencies: US-001.` and a separate `### Dependencies` summary are not machine-read declarations. See the guide's Dependencies contract. Missing means unstated, not independent; repeated declarations must agree, and an empty declaration must not coexist with named dependencies.
 
-**Blocker:** sizing breach not resolved (over or under); removal keywords present with no terminal-cleanup story planned; new externally-visible symbol without a planned seam AC for its consumer story; a consumer AC that renders/charts/aggregates data absent from the producer contract's declared fields (contract seam); **monorepo detected and any story is missing a `Workdir`, carries more than one package, or names a package path that is not a workspace member**.
+Propose the story list with these explicit dependencies (and per-story `Workdir` when monorepo) to the user. Confirm before proceeding.
 
-**Output (written to file):** Stories section with 3-7 stories, dependency chain, per-story `Context Files` (reads) and `Creates` (new files), a top-level `### Modifies` section grouping existing files each story is authorised to change (or `None.` with a justification), a single-valued `Workdir` per story when the repo is a monorepo, terminal-cleanup story if applicable, and a `### Seams` block listing cross-story invariants.
+**Blocker:** any story lacks a machine-readable dependency statement, has conflicting declarations, or names an unknown dependency, self-dependency, or cycle; sizing breach not resolved (over or under); removal keywords present with no terminal-cleanup story planned; new externally-visible symbol without a planned seam AC for its consumer story; a consumer AC that renders/charts/aggregates data absent from the producer contract's declared fields (contract seam); **monorepo detected and any story is missing a `Workdir`, carries more than one package, or names a package path that is not a workspace member**.
+
+**Output (written to file):** Stories section with 3-7 stories, explicit machine-readable dependency declarations, per-story `Context Files` (reads) and `Creates` (new files), a top-level `### Modifies` section grouping existing files each story is authorised to change (or `None.` with a justification), a single-valued `Workdir` per story when the repo is a monorepo, terminal-cleanup story if applicable, and a `### Seams` block listing cross-story invariants.
 
 ### Phase 5 — AC drafting
 
@@ -401,6 +404,13 @@ part of it that requires a nax host. The sweep below still runs.
 A dropped `Modifies` entry is otherwise findable only by planning the spec and
 diffing the PRD, which is why this stage runs before the handoff rather than after.
 
+#### Declaration sweep (mandatory, before spec-review)
+
+- For every story in `## Stories`, verify a machine-readable `Depends on US-001[, US-002]`, `No dependencies.`, or `Depends on none.` statement on the declaring line or in its prose. Ignore fenced examples and grouped `Modifies` / `Seams` / `Context Files` / `Creates` reasons. Missing or conflicting declarations, unknown IDs, self-dependencies, and cycles block handoff; a separate dependency summary cannot satisfy this gate.
+- Reconcile every issue Summary or other feature prose says the feature closes, fixes, or resolves against the plain `Closes: #N, #M` line below the title. Validate each token as a bare same-repo `#N` (no trailing punctuation), outside fences. Missing closure claims, invalid tokens, or an issue listed for closure while its resolution is excluded by Out of Scope block handoff. Related and partly addressed issues stay in prose; omit `Closes:` when there are no fully resolved issues. Confirm ambiguous closure intent with the user instead of silently claiming it.
+
+These checks still run after a clean `nax spec lint`; lint passing does not establish that these declarations are present or reflect the author's intent. spec-review Phase 5 checks them again, and Phase 9 compares dependency sets after planning.
+
 #### Pre-handoff shell sweep (mandatory)
 
 Before invoking spec-review, grep the draft for non-runtime AC tokens. Any hit is a Phase 5 regression that must be fixed in-file before Phase 6 proceeds — do **not** rely on spec-review Phase 7 to catch this; that's a defense-in-depth check, not the primary gate.
@@ -492,10 +502,12 @@ When the intent is dominated by deletions (consolidation specs, dead-code cleanu
 
 ## Output format
 
-The skill writes a `SPEC-*.md` matching the guide's structure. (During Phases 1–5 the phase marker occupies line 1, above the `# SPEC:` heading; Phase 6 removes it, so the finished shape below carries none.)
+The skill writes a `SPEC-*.md` matching the guide's structure. (During Phases 1–5 the phase marker occupies line 1, above the `# SPEC:` heading; Phase 6 removes it, so the finished shape below carries none.) The `Closes:` line below is optional: replace its example IDs with the fully resolved same-repo issues from Phase 1, or omit the line when there are none.
 
 ```markdown
 # SPEC: <Feature Name>
+
+Closes: #123, #456
 
 ## Summary
 <one paragraph from Phase 1>
@@ -516,7 +528,7 @@ The skill writes a `SPEC-*.md` matching the guide's structure. (During Phases 1�
 <from Phase 1's Out-of-scope field — one self-contained bullet per deferred item, machine-extracted by `nax plan`; see the guide's `## Out of Scope` contract>
 
 ## Stories
-<from Phase 4 — 3-7 stories with dependencies; each story carries a single-valued `Workdir: <package path>` when the repo is a monorepo>
+<from Phase 4 — 3-7 stories, each explicitly stating `Depends on US-001[, US-002]` or `No dependencies.` in its declaring line/prose; each story carries a single-valued `Workdir: <package path>` when the repo is a monorepo>
 ### Context Files / Creates
 <from Phase 4 — per story, under a `**US-00N**` lead-in ALONE on its line>
 ### Modifies

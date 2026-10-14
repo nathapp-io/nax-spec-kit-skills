@@ -24,6 +24,8 @@ Persistent retry state across process restarts is deferred to a later arc.
 
 ### US-001: Backoff scheduling
 
+No dependencies.
+
 Introduce the doubling schedule inside the existing scheduler.
 
 ### Context Files

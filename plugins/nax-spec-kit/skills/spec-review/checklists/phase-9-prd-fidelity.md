@@ -30,6 +30,23 @@ Checks:
    scope bleed — typically from `nax plan`'s candidate-PRD merge feature.
    Common signatures: PRD AC introduces new enum values, new status codes, new
    config keys, or new validation behaviour not in the spec.
+3b. **Dependency fidelity (before file-role checks).** Use Phase 5 Step 6's
+   story-local, machine-readable declarations in `## Stories`, not a separate
+   dependency summary. Match spec stories to `prd.userStories` by ID and compare
+   dependency **sets** (ignore order and duplicates, normalise ID case).
+   `No dependencies.` / `Depends on none.` means an explicit empty set.
+   A missing PRD story, missing/non-array `dependencies`, an omitted edge
+   (especially `[]` versus a stated upstream dependency), or an invented edge
+   is a **blocker**. An explicit empty set must match `[]`.
+
+   Missing or conflicting spec declarations are Phase 5 findings: report them
+   there rather than assuming an empty set or claiming a match. Resolve those
+   declarations before accepting dependency fidelity. Re-check §4c after the
+   graph is corrected: a lost dependency can also strip an upstream-produced
+   file from the consumer's `contextFiles`. Repair the spec when its syntax is
+   wrong and re-plan; if correctly stated dependencies still drift, flag the
+   planner. Do not silently add inferred edges to make the review pass.
+
 4. **File-role delta (`contextFiles` vs `expectedFiles`).** The nax PRD splits a
    story's files into two roles with **different semantics** — do not conflate
    them (see [§PRD file-role schema](#prd-file-role-schema-phase-9)):
@@ -198,7 +215,7 @@ Checks:
    in-place PRD patch of the affected `acceptanceCriteria` entry (verbatim
    otherwise), not a re-plan.
 
-**Blocker:** spec AC missing from PRD; behavioural AC degraded into a
+**Blocker:** explicit spec dependencies differ from PRD dependencies (including a missing story or dependency array; see §3b); spec AC missing from PRD; behavioural AC degraded into a
 file-content/grep AC or stripped of its asserted behaviour; meta-AC deleted;
 orphan PRD AC introducing material scope; terminal-cleanup story missing or
 contaminated with additive ACs; a self-`Creates` file placed in `contextFiles`

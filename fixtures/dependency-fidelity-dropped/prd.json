@@ -1,0 +1,12 @@
+{
+  "userStories": [
+    {
+      "id": "US-001",
+      "dependencies": []
+    },
+    {
+      "id": "US-002",
+      "dependencies": []
+    }
+  ]
+}

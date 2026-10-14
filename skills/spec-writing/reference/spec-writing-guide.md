@@ -9,6 +9,8 @@ A good spec has 6 sections. **All are required.**
 ```markdown
 # SPEC: [Feature Name]
 
+Closes: #123, #456
+
 ## Summary
 One paragraph: what this feature does and why it matters.
 
@@ -31,6 +33,26 @@ Include context files and dependency markers (see below).
 ## Acceptance Criteria
 Per-story behavioral criteria (see format below).
 ```
+
+### `Closes:` — machine-read issue closure declaration (optional)
+
+When this feature fully resolves same-repository issues, put one `Closes: #N, #M`
+line immediately below the title, outside any code fence. Omit the whole line
+when no issues are fully resolved; the numbers above are examples, not defaults.
+nax workflow reads this declaration to add `Closes #N` links to the PR body.
+Summary prose alone does not produce closing links.
+
+| RIGHT | WRONG — not read as a closing reference |
+|:---|:---|
+| `Closes: #275, #238` | Summary prose such as "closes #275" |
+| Bare same-repo `#N` tokens, separated by commas or whitespace | `Fixes: #275`, `Closes: 275`, `Closes: owner/repo#275`, `Closes: koda#275` |
+| A plain declaration line outside fences | A fenced example, a bullet `- Closes: #275`, or `Closes: #275.` (trailing punctuation invalidates that token) |
+
+The keyword is case-insensitive and leading whitespace is accepted. Only issues
+the feature fully resolves belong here. Partly addressed, related, or deferred
+issues remain in prose and, where work is deferred, Out of Scope. Reconcile the
+line with every closure claim in Summary or other feature prose and with the
+exclusions before handoff.
 
 ### `## Out of Scope` — machine-extracted, write it to the contract
 
@@ -663,10 +685,32 @@ If you cannot express the invariant as a runtime behaviour an implementer can te
 
 ## Dependencies
 
-Mark story dependencies explicitly:
+### Dependencies — machine-extracted
+
+Every story must state `Depends on US-001[, US-002]` or `No dependencies.`
+(`Depends on none.` also works). Put the phrase on the story's declaring line
+or in its prose **inside `## Stories`**, before any grouped file-hint subsection.
+The declaration belongs to that story, not to a separate dependency summary.
+
+| RIGHT | WRONG — not a dependency declaration |
+|:---|:---|
+| `### US-002 — Integration` followed by `Depends on US-001.` | `Dependencies: US-001.` or `Deps: US-001` |
+| `1. **US-002: Integration** — depends on US-001` | A separate `### Dependencies` section containing `US-002 → US-001` |
+| `No dependencies.` or `Depends on none.` | `Dependencies: none.` or an omitted statement |
+| Story-local prose in `## Stories`, outside fences | A phrase only in Acceptance Criteria, a fenced example, or inside `### Modifies`, `### Seams`, `### Context Files`, or `### Creates` |
+
+Missing means **unstated**, not independent: only an explicit empty declaration
+authorises deterministic backfill of `dependencies: []`; otherwise the planner
+can leave its inferred/default value in place. Never infer independence from a
+missing marker. Repeated declarations for one story must agree as sets, and a
+story must not state both a dependency list and `No dependencies.`. Check for
+unknown IDs, self-dependencies, and cycles. Dependencies also determine whether
+an upstream-created file survives in a consumer's `contextFiles`.
+
+Canonical example:
 
 ```markdown
-### Stories
+## Stories
 1. **US-001: Add types** — no dependencies
 2. **US-002: Registry support** — depends on US-001
 3. **US-003: Runner integration** — depends on US-002
