@@ -25,6 +25,8 @@ Out of Scope
 
 ### US-001: Backoff scheduling
 
+No dependencies.
+
 Introduce the doubling schedule inside the existing scheduler.
 
 ### Context Files

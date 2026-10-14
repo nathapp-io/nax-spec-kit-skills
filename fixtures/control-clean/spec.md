@@ -24,6 +24,8 @@ A task that exhausts its retry budget raises `RetryBudgetExhausted` carrying the
 
 ### US-001: Backoff scheduling
 
+No dependencies.
+
 Introduce the doubling schedule inside the existing scheduler.
 
 ### Context Files

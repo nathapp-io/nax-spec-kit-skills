@@ -135,23 +135,25 @@ skills/
 
 ## Fixture corpus (mechanical checks)
 
-`fixtures/` holds minimal invented specs — each defect fixture is a single-line
-delta from `control-clean/` exhibiting exactly one defect a documented
-**mechanical** check must catch; the control may fire nothing. `npm run
+`fixtures/` holds minimal invented specs — defect fixtures isolate a documented
+**mechanical** finding; clean controls may fire nothing. Optional `prd.json` files
+exercise dependency fidelity after planning. `npm run
 test:fixtures` (chained last in `prepare:codex-release`; this repo has no CI, so
 the gate runs when that chain runs) executes `scripts/eval-mechanical.mjs`,
-which mirrors the documented grep/awk procedures — a fixture fails when its
+which mirrors documented mechanical checks for the fixture shapes — a fixture fails when its
 expected check does not fire, or when anything unexpected fires, on any fixture.
 
-Coverage today is **six of the mechanical checks** (Step 8b Out-of-Scope shape,
+Coverage today includes **ten mechanical checks** (Step 8b Out-of-Scope shape,
 Step 9b placeholder sentinels, Phase 7 banned tags, the marker-placement rule,
 the Modifies one-file-per-bullet rule, Step 7b no `Creates`/`Modifies` entry under
-`.nax/`) — not the whole mechanical surface (AC
-caps, duplicate ACs, required sections, and the Phase 6 shell greps are not yet
-fixtured). **Ratchet:** a PR that adds or edits a mechanical check ships or
+`.nax/`, plus missing/conflicting story dependency declarations, invalid `Closes:`
+tokens, and spec-to-PRD dependency sets). The declaration reader covers canonical
+fixture shapes; it does not replace nax's parser or a full spec review. This is
+not the whole mechanical surface (AC caps, duplicate ACs, required sections,
+and other Phase 6 shell sweeps are not yet fixtured). **Ratchet:** a PR that adds or edits a mechanical check ships or
 updates its fixture in the same PR; the runner's header comment maps each check
 to its documentation SSOT. Judgment checks (Phase 4's `P4.n`, Step 8c, seam
-tracing) need an LLM reviewer and are deliberately out of this corpus's scope.
+tracing, issue-closure intent, and whether Out of Scope contradicts closure) need an LLM reviewer and are deliberately out of this corpus's scope.
 
 ## License
 

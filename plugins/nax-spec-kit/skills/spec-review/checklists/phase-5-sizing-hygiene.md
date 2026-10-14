@@ -60,18 +60,51 @@ Common drift: title still mentions an old feature name after a refactor.
 
 ## Step 6 — Dependency DAG validity
 
-Extract the Dependencies section:
-```bash
-sed -n '/### Dependencies/,/^### \|^## /p' <spec-path>
-```
+Read declarations **per story inside `## Stories`**, stopping at the next H1/H2
+heading and skipping fenced examples. Accept `Depends on US-001[, US-002]`,
+`No dependencies.`, or `Depends on none.` on the story's declaring line or in
+its prose. Match phrases case-insensitively. A numbered bold declaration such as
+`1. **US-002: Integration** — depends on US-001` also works.
 
-For each story, parse "depends on" line. Verify:
-- All referenced stories exist
-- No cycles
-- US-NNN ordering matches dependency direction (US-001 should not depend on US-005)
-- Stories listed as "no dependencies" actually need none (look for backward references)
+Statements inside `### Modifies`, `### Seams`, `### Context Files`, or
+`### Creates` do not declare dependencies. Neither `Dependencies: US-001.` nor
+`Deps: US-001` nor a separate `### Dependencies` summary substitutes for a
+story-local declaration. Do not infer independence from missing syntax.
 
-Cycles or missing references → **BLOCKER**.
+For each story, record the declared dependency set and verify:
+- Every story explicitly names dependencies or states none, including a single-story spec.
+- All referenced stories exist; no self-dependencies or cycles.
+- Repeated declarations agree as sets; no story states both none and a nonempty list.
+- The declared ordering supports the files and interfaces the story consumes.
+- Stories listed as independent actually need none (look for upstream-created files).
+
+Missing machine-readable statement → **MAJOR**. Unknown references,
+self-dependencies, cycles, or conflicting declarations → **BLOCKER**. A higher
+numeric story ID alone is not a cycle; evaluate the graph, not ID ordering.
+Phase 9 compares the explicit sets with the planned `dependencies` arrays.
+
+## Step 6b — Issue closure declarations
+
+Read plain `Closes:` lines outside fenced blocks (case-insensitive, leading
+whitespace accepted). Split the remainder on commas/whitespace: each closing
+reference must be exactly `#` plus digits. A line can partially extract: in
+`Closes: #51, #49.` only `#51` is read. `Fixes:`, prose, bullets, bare numbers,
+cross-repo references, and fenced examples are not declarations. The authoring
+guide places one optional line immediately below the title.
+
+- Invalid or empty `Closes:` declaration → **MAJOR**; name each ignored token.
+- Summary or other feature prose explicitly claims to close, fix, or resolve a
+  same-repo `#N`, but the extracted closure set omits it → **MAJOR**. A `Fixes:`
+  line or a bullet claiming closure also needs the canonical declaration.
+- An issue in the closure set has required resolution work explicitly deferred
+  by Out of Scope → **MAJOR**. Resolve the scope conflict before handoff; do not
+  silently broaden scope or claim closure.
+
+Ordinary references ("related to #51"), partial work ("partly addresses #51"),
+quoted examples, negated closure claims ("does not resolve #51"), and specs with
+no issues to close are **not findings**. Judge closure intent in a read-pass;
+a grep for `#N` alone cannot establish it. Deferring an optional follow-up for
+an otherwise fully resolved issue does not itself contradict closure.
 
 ## Step 7 — Context Files completeness
 
