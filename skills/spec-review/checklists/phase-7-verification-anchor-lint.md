@@ -10,7 +10,7 @@ Checks:
 > **Tags are an authoring-time device — they do not survive `nax plan`.** Measured
 > corpus-wide: only **331 of 12547 PRD ACs (2.6%)** retain a `[unit]`/`[integration]`/`[cli]`
 > tag; the planner strips ~97% while rewriting. So the tag never reaches the
-> implementer, test-writer, or reviewer.
+> implementer or reviewer.
 >
 > That does **not** make this phase pointless — choosing a tag forces the author to
 > name a mechanism, which is what turns "the symbol exists" into a runtime assertion,

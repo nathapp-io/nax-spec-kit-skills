@@ -69,8 +69,8 @@ Checks:
    - **c. Cross-story produced files belong in the consumer's `contextFiles`.**
      A file that is absent on disk because an **upstream dependency** story creates
      it (it's in a prior story's `Creates` / `expectedFiles`) **exists at this
-     story's runtime** — dependencies run first (sequential: shared workdir;
-     parallel: each batch merges to `HEAD` before the next branches from it). So:
+     story's runtime** — dependencies run first, one story at a time in a shared
+     workdir. So:
      - In the consumer's `contextFiles` (planner kept it) → **correct, not a
        finding.**
      - Dropped from the consumer's `contextFiles`, **or** mis-moved into the
@@ -114,11 +114,11 @@ Checks:
    but not the named method.
 
    This is the last gate before `nax run`, and the failure it catches is expensive:
-   an unsatisfiable AC becomes an acceptance test named `AC-N: …` that can never go
-   green. nax's acceptance diagnosis can only return `source_bug`, `test_bug`, or
-   `both` — it has **no verdict meaning "the criterion is wrong"** — so it blames
-   innocent code and burns `rectification.maxAttemptsTotal` (default 12) attempts
-   plus tier escalation before the story blocks, never naming the real cause.
+   an unsatisfiable AC can never be met. The story review keeps failing it, the
+   fix rounds (`workflow.maxFixRounds`, default 5; later rounds escalate a tier)
+   burn on innocent code, and the advisor adjudicates the residual — nothing in
+   the loop has a verdict meaning **"the criterion is wrong"**, so the real cause
+   is never named.
    Scope: invocation-shaped ACs only, not every AC.
 6. **Out-of-scope preservation (`prd.outOfScope`).** The PRD carries a top-level
    `outOfScope` string array holding the spec's `## Out of Scope` / `## Non-Goals`

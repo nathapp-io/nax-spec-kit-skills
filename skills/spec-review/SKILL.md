@@ -170,8 +170,8 @@ model.
 Consequences for the audit:
 - A spec `Context Files` entry produced by an **upstream dependency** story
   **belongs in** the consumer's `contextFiles` — it exists at the consumer's
-  runtime because dependencies run first (sequential: shared workdir; parallel:
-  each batch merges to `HEAD` before the next branches). If the planner kept it,
+  runtime because dependencies run first (one story at a time, shared workdir).
+  If the planner kept it,
   that is correct. If the planner **dropped** it or **mis-moved** it into the
   consumer's `expectedFiles`, that is a fidelity finding — the fix is in
   `nax plan` (`normalizeCreatedContextFiles` is now dependency-aware), not a

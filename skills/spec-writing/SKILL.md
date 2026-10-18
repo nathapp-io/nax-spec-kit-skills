@@ -19,6 +19,8 @@ whether the draft's machine-extracted sections actually extract. On a host with 
 
 Each phase has a stop-the-line gate — if it produces blockers, the next phase doesn't run until they're resolved. Phase 6 lints the draft and then hands it to `spec-review`; any spec-review blocker loops back to the owning phase.
 
+**Execution model.** The spec targets nax **workflow mode**, the `nax run` default since v0.88.0: stories run one at a time, each through one implementer session (it writes the tests and the code), the deterministic gates, one story review (spec + quality verdict) and bounded fix rounds; then one whole-branch review, bounded branch-fix rounds, advisor adjudication of the residual, and a PR. Pipeline mode (`execution.mode: "pipeline"`) is deprecated and frozen; this skill does not tune for it. See guide § Execution model.
+
 ## When to Activate
 
 - User says "draft the spec for X", "write SPEC-Y.md", "convert this into a spec"
@@ -46,6 +48,7 @@ These thoughts mean stop — you are rationalizing:
 | "Two paths in one Modifies bullet saves space" | The extractor takes only the leading backticked path; the second is swallowed and never authorised. |
 | "The story can just update `.nax/rules/` too" | `.nax/` is read-only to the run (only `.nax/scratchpad/` is writable). A `.nax/` change is a manual step recorded in `## Out of Scope`, never a story's work. |
 | "The guide says 15 ACs, so 15 is the cap" | The host's `maxAcCount` ranges 6–24 across real projects. Resolve it in Pre-flight and size against that. |
+| "It needs 9 stories, so it must be split" | There is no story ceiling. Split on independence (separate capabilities, a bundle of unrelated fixes), never on count. See Phase 4 § Feature size. |
 | "spec-review will catch it downstream" | Phase 6's own sweep is the primary gate; spec-review is defense-in-depth, not a backstop for known debt. |
 | "It grew mid-draft, but I'm nearly done" | The ratchet is one-way: scale discovered mid-draft upgrades the Step 0 classification. Stop, split, re-enter. |
 | "I just wrote this — reviewing it inline is faster" | The drafter's assumptions are what the audit tests. Dispatch the fresh reviewer; inline is only for hosts without subagents. |
@@ -67,8 +70,8 @@ One feature = one spec = one PRD — that is the planner's unit of execution, so
 
 - **Probe** — a feasibility question ("can we…?", "is it possible…?") whose output is an answer, not code to keep. No spec; investigate cheaply and report a recommendation. This skill does not apply.
 - **Bounded** — a single well-scoped change, to existing code or a small greenfield piece (greenfield features often land here at 1–2 stories; see Greenfield specs under Operational rules). A one- or two-story spec is proportionate — proceed to step 1 and size accordingly — or use the one-off-script opt-out under When NOT to Activate.
-- **Feature-sized** — one coherent capability, deliverable in 3–7 stories. Proceed to step 1.
-- **Multi-subsystem** — the intent describes several independently deliverable subsystems. Do **not** draft one spec: the story ceiling would force over-bundling, and the dependency structure between subsystems would never be stated. Decompose into **one feature per subsystem**, state the dependency order between them, confirm the split with the user, then draft the *first* feature's spec through this skill — the rest queue behind it, each with its own spec and PRD.
+- **Feature-sized** — one coherent capability that ships as one reviewable PR, usually 3–8 stories. There is no story ceiling; a capability that structurally needs more takes more (Phase 4 § Feature size). Proceed to step 1.
+- **Multi-subsystem** — the intent describes several independently deliverable subsystems. Do **not** draft one spec: they would ship as one branch under one branch review, a human would have to merge unrelated work as one PR, and the dependency structure between subsystems would never be stated. Decompose into **one feature per subsystem**, state the dependency order between them, confirm the split with the user, then draft the *first* feature's spec through this skill — the rest queue behind it, each with its own spec and PRD.
 
 **One-way ratchet.** Scale discovered mid-draft upgrades the classification — a bounded draft that grows past one story, or a feature whose stories split into two independent arcs, stops where it is: say so, split, and re-enter with the new classification. Nothing downgrades mid-draft.
 
@@ -241,13 +244,17 @@ Estimate AC count and files touched from the intent + design notes. Apply the gu
 - Context Files list >5 (the read list; `Creates` is counted separately)
 - Story mixes additive ACs ("add X") and destructive ACs ("delete Y", "rename Z", "consolidate W") — split with destruction in a terminal-cleanup story
 - Story has both "add new feature" and "refactor existing code"
-- **(monorepo only)** Story touches more than one workspace package — split into one story per package so each story has a single `Workdir`. A repo-root-only story (root config, workspace manifest) is not a split trigger; it takes `Workdir: .` (see Workdir assignment below). This split applies before the Must-merge / hard-ceiling checks: a per-package split is structural and is never merged back into a multi-package story.
+- **(monorepo only)** Story touches more than one workspace package — split into one story per package so each story has a single `Workdir`. A repo-root-only story (root config, workspace manifest) is not a split trigger; it takes `Workdir: .` (see Workdir assignment below). This split applies before the Must-merge checks: a per-package split is structural and is never merged back into a multi-package story.
 
-**Must merge** (upper bound enforcement):
-- More than 7 stories in the spec — over-decomposition is the symmetric failure of over-bundling.
+**Must merge** (granularity — story too small):
 - Merge two stories when **either** condition holds: (a) they share a module and at least one has <4 ACs; or (b) one is meaningless without the other (regardless of module). **Never merge if the result would breach a Must-split rule above** (e.g. >15 ACs combined, additive+destructive mix) — leave them separate.
-- **Cost tiebreaker:** if the feature can be expressed in N-1 stories without breaching any Must-split rule, prefer N-1. Story count is driven up by split rules, never by a preference to decompose.
-- **Soft target 3-5, hard ceiling 7.** Each story is its own plan/implement/review pass, so count is ~linear in cost. Reserve the 6th/7th story for features that *structurally* need it — a dependency chain, a terminal-cleanup story, or a producer/consumer seam. If a story exists only because the work "felt separable," merge it. Single-story specs are acceptable for tiny features.
+- **Granularity tiebreaker:** if the feature can be expressed in N-1 stories without breaching any Must-split rule, prefer N-1. Every story pays a fixed gates + story-review pass, and a story that exists only because the work "felt separable" is fragile. Story count is driven up by split rules, never by a preference to decompose. Single-story specs are acceptable for tiny features.
+
+**Feature size** (the upper bound is on the feature, not on story count):
+- There is **no story ceiling.** Measured across 58 workflow-mode runs, wall time and cost per story stay flat (about 0.35 h and $0.45 per story from 2 to 17 stories), so story count is not a cost lever.
+- What grows with size is the **branch residual**: findings still open after the bounded branch-fix rounds, which go to the advisor and then to a human in the PR. Runs with a residual: 0 of 20 at ≤5 stories, 5 of 27 at 6–7, 4 of 11 at 8 or more.
+- **At 8 or more stories**, say so in the Phase 4 proposal and confirm the spec is **one capability**. If it is a bundle of independent fixes or capabilities (4 of the 9 residual runs were hardening bundles), split it into features per Step 0's Multi-subsystem rule. If it is one coherent capability, proceed — expect a draft PR more often.
+- Do **not** size the branch from `### Modifies` + `Creates`: declared paths undercount the files a run actually changes by about 2x (median; 1.2x–3.4x interquartile), so they do not predict branch size.
 
 Detect **removal keywords** in the intent (`delete|remove|consolidate|retire|rename|migrate`). If any present:
 
@@ -297,7 +304,7 @@ Propose the story list with these explicit dependencies (and per-story `Workdir`
 
 **Blocker:** any story lacks a machine-readable dependency statement, has conflicting declarations, or names an unknown dependency, self-dependency, or cycle; any story depends on a higher-numbered story (renumber in dependency order); sizing breach not resolved (over or under); removal keywords present with no terminal-cleanup story planned; new externally-visible symbol without a planned seam AC for its consumer story; a consumer AC that renders/charts/aggregates data absent from the producer contract's declared fields (contract seam); **monorepo detected and any story is missing a `Workdir`, carries more than one package, or names a package path that is not a workspace member**.
 
-**Output (written to file):** Stories section with 3-7 stories, explicit machine-readable dependency declarations, per-story `Context Files` (reads) and `Creates` (new files), a top-level `### Modifies` section grouping existing files each story is authorised to change (or `None.` with a justification), a single-valued `Workdir` per story when the repo is a monorepo, terminal-cleanup story if applicable, and a `### Seams` block listing cross-story invariants.
+**Output (written to file):** Stories section sized by the rules above (no fixed count), explicit machine-readable dependency declarations, per-story `Context Files` (reads) and `Creates` (new files), a top-level `### Modifies` section grouping existing files each story is authorised to change (or `None.` with a justification), a single-valued `Workdir` per story when the repo is a monorepo, terminal-cleanup story if applicable, and a `### Seams` block listing cross-story invariants.
 
 ### Phase 5 — AC drafting
 
@@ -530,7 +537,7 @@ Closes: #123, #456
 <from Phase 1's Out-of-scope field — one self-contained bullet per deferred item, machine-extracted by `nax plan`; see the guide's `## Out of Scope` contract>
 
 ## Stories
-<from Phase 4 — 3-7 stories, each explicitly stating `Depends on US-001[, US-002]` or `No dependencies.` in its declaring line/prose; each story carries a single-valued `Workdir: <package path>` when the repo is a monorepo>
+<from Phase 4 — stories sized per Phase 4 (no fixed count), each explicitly stating `Depends on US-001[, US-002]` or `No dependencies.` in its declaring line/prose; each story carries a single-valued `Workdir: <package path>` when the repo is a monorepo>
 ### Context Files / Creates
 <from Phase 4 — per story, under a `**US-00N**` lead-in ALONE on its line>
 ### Modifies
@@ -577,7 +584,7 @@ Run `spec-review --spec <path>` for a full codebase audit before `nax plan`.
 
 - **Not brainstorming.** Assumes intent is stable. If intent is fluid, redirect to `brainstorming`.
 - **Not spec-review.** Performs only a light symbol audit in Phase 3 and dispatches full spec-review to a fresh reviewer in Phase 6. Doesn't replace spec-review's nine phases.
-- **Not `nax plan`.** Decomposes into stories at the spec level (3-7 user-visible capabilities), not into PRD slices (per-AC executable plans).
+- **Not `nax plan`.** Decomposes into stories at the spec level (user-visible capabilities, sized per Phase 4), not into PRD slices (per-AC executable plans).
 - **Not a design reviewer.** Doesn't judge whether the design is good — only whether it's structured per the guide. Use `architect` or `code-reviewer` for design quality.
 - **Not project-specific.** Rules come from [reference/spec-writing-guide.md](reference/spec-writing-guide.md) and the host project's rule store(s) — `.nax/rules/` (nax-native canonical store, higher priority) and/or `.claude/rules/`. Same skill works on any project.
 

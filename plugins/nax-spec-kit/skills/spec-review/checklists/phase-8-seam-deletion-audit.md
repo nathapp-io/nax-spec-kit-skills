@@ -46,7 +46,7 @@ Checks:
 
        | condition | why it ships broken |
        |:---|:---|
-       | No path exists from the named entry point to the stubbed symbol | the acceptance test can never go green |
+       | No path exists from the named entry point to the stubbed symbol | the AC's test can never go green |
        | A path exists only behind an enabling flag / config guard that **nothing in the spec establishes** | the test's default fixture takes the short-circuit branch |
        | The path reaches the symbol but not the **method** the AC names | there is no such call to assert |
 

@@ -174,13 +174,14 @@ when the spec also establishes the collision cannot fire during the run — the 
 inert at test time (behind a flag the run never sets), or an earlier in-scope story
 deletes or rewrites the pinning test. Otherwise the deferral is a documented deadlock.
 
-**Why blocker, not minor.** The implementation will be *correct* and the story will still
-fail terminally: the full-suite gate runs the whole existing suite, and test-authorship
-isolation (`tdd.testWriterAllowedPaths`, `autofix.enforceTestWriterIsolation`, or any
-harness equivalent) bars implementer and rectifier from editing a test the story does not
-own. The rectifier can only revert its own correct work or stop — observed behaviour is
-`agent-gave-up` after exhausting every escalation tier. No implementation-only change
-satisfies both contracts, so retry, escalation, and a stronger model all fail alike.
+**Why blocker, not minor.** The implementation will be *correct* and the story still cannot
+end clean: the gates run the whole existing suite, so the pinning test goes red. In workflow
+mode the implementer owns its tests, so it either rewrites the pinning test — silently
+dropping the contract that test pinned, which the story review must then catch — or leaves
+the gate red through every fix round until the advisor adjudicates. No implementation-only
+change satisfies both contracts, so retry, escalation, and a stronger model all fail alike.
+(Pipeline mode, deprecated, bars the implementer from the test outright and ends in
+`agent-gave-up`.)
 
 **Recommended fix** — one of, in preference order:
 
