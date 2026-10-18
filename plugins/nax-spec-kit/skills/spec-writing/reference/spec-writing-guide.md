@@ -257,7 +257,7 @@ Every AC must be **behavioral and independently testable**.
 |:-----|:----|:----|:------|:----------|
 | Simple | 3-5 | ≤50 | 1-2 | Single concern, purely additive |
 | Medium | 5-8 | 50-200 | 2-5 | Standard patterns, clear requirements |
-| Complex | 6-15 | 200-500 | 5+ | New abstractions, multiple modules |
+| Complex | 6 up to the project `maxAcCount` | 200-500 | 5+ | New abstractions, multiple modules |
 
 ### Hard splitting rules (no exceptions)
 
@@ -297,7 +297,7 @@ command in the story's verification note. This prevents the well-known attractor
 where additive slices land green and cleanup is silently dropped.
 
 **Merge if:**
-- Two stories share the same module and have <4 ACs each
+- Two stories share the same module and at least one has <4 ACs
 - A story only makes sense as part of another (e.g., "parse schema" is not useful without "validate against schema")
 
 **No story ceiling — size the feature, not the story count.** Each story should deliver a

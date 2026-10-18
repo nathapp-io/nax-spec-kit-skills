@@ -34,9 +34,9 @@ grep -c "^### US-" <spec-path>
 There is **no story ceiling** (spec-writing guide § Story Sizing): in workflow mode, time and cost per
 story are flat, so the count alone is never a finding. Check granularity and cohesion instead:
 - **Too granular** — two stories share a module and one has <4 ACs, or one is meaningless without the
-  other → **minor**, recommend merging (unless the merge breaches a must-split rule).
+  other → **MAJOR** (spec-writing Must-merge), recommend merging (unless the merge breaches a must-split rule).
 - **8 or more stories** → check the spec is **one capability**. If it bundles independent fixes or
-  capabilities → **minor**, recommend one feature per capability: the bundle ships under one branch
+  capabilities → **MAJOR** (spec-writing Step 0 Multi-subsystem), recommend one feature per capability: the bundle ships under one branch
   review and its residual findings land on a human. A coherent capability → no finding; note
   "8+ stories: expect a higher chance of a draft PR" in the report.
 - Do not judge branch size from `### Modifies` + `Creates` counts; they undercount the files a run

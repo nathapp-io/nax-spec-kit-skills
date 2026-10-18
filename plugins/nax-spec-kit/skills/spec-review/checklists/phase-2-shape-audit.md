@@ -231,8 +231,9 @@ fails. Read the spec's own ACs for closed-world wording (`exactly`, `only these`
 
 **Collision:** the assertion is <set-equality / exact-count / snapshot> over
 `<shape>`'s members, so adding `<member>` fails it. No story in this spec authorises
-editing `<test file>`, and test-authorship isolation bars the implementer from doing
-so unprompted — the story deadlocks with a correct implementation.
+editing `<test file>`, so the gates go red on a correct implementation: the implementer
+either rewrites the pinning test (silently dropping its contract) or leaves the gate red
+through every fix round until the advisor adjudicates.
 
 **Recommended fix:** add an AC to <story> updating the assertion, and list
 `<test file>` under a `### Modifies` block grouped by `**<story>**`, with a reason
@@ -248,7 +249,7 @@ naming the assertion and the invariant that replaces it.
 - `kind: "complete"` when single-turn LLM ops in the codebase are all `kind: "run"`
 - Field used in ACs but absent from the interface definition (`revisionFindings`)
 - Wrong schema file location (proposes editing `schemas.ts` when the type lives in `schemas-infra.ts`)
-- An earlier feature's test asserting set-equality over a table's columns while this spec adds two of them — correct implementation, unfixable full-suite gate, terminal `agent-gave-up` (Step 7)
+- An earlier feature's test asserting set-equality over a table's columns while this spec adds two of them — correct implementation, full-suite gate red through every fix round, ending in adjudication (Step 7)
 - A per-member type loop iterating the *actual* columns and indexing an expected map, hiding behind that set-equality assertion in the same test — relaxing only the obvious one re-fails the story on a `KeyError` (Step 7)
 
 ## Hand-off to Phase 8 — unsourced identifiers
