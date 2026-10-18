@@ -46,7 +46,7 @@ Checks:
 
        | condition | why it ships broken |
        |:---|:---|
-       | No path exists from the named entry point to the stubbed symbol | the acceptance test can never go green |
+       | No path exists from the named entry point to the stubbed symbol | the AC's test can never go green |
        | A path exists only behind an enabling flag / config guard that **nothing in the spec establishes** | the test's default fixture takes the short-circuit branch |
        | The path reaches the symbol but not the **method** the AC names | there is no such call to assert |
 
@@ -85,8 +85,9 @@ Checks:
 4. **Deletion isolation.** Stories that contain both additive ACs and destructive
    ACs are flagged as splittable per the spec-writing terminal-cleanup-story
    rule. Pure terminal-cleanup stories (deletion-only) pass.
-5. **Sizing+.** Re-run the spec-writing hard splitting rules — Context Files >5
-   or AC count >15 in a single story is a blocker, regardless of `maxAcCount`.
+5. **Sizing+.** Re-run the spec-writing hard splitting rules — Context Files >5,
+   or an AC count over the resolved `maxAcCount` (fallback 15) in a single story,
+   is a blocker.
    The "single story with sub-deliverables" framing is rejected.
 6. **Contract seams (what crosses a producer/consumer boundary).** For every AC —
    and every `Interface` formula an AC rests on — that either *derives a value* at

@@ -16,6 +16,8 @@ A nine-phase audit that grounds an implementation spec in the actual codebase be
 - In a PR check for any PR that adds or substantially modifies a file under `docs/specs/`
 - Before declaring a spec "ready for implementation"
 
+**Execution model.** Findings assume nax **workflow mode**, the `nax run` default (one implementer per story, story review, bounded fix rounds, one branch review, advisor adjudication, PR). Pipeline mode is deprecated and frozen; where a checklist says *semantic* or *adversarial review*, read the workflow story review and branch review. See the spec-writing guide § Execution model.
+
 **Entry condition — the `nax spec lint` stage runs first.** On a nax host project the
 spec should already have passed `nax spec lint <spec.md>`, the pipeline stage between
 `spec-writing` and `spec-review` that checks the machine-extracted sections
@@ -70,7 +72,7 @@ Also runs the **forward-reference consistency sweep**: every allowlisted symbol 
 
 See [checklists/phase-2-shape-audit.md](checklists/phase-2-shape-audit.md).
 
-For every claim of the form "X has field Y" or "X(args) returns Z", open the actual source and compare. Includes interface field membership, function signatures, default values, enum members. Also runs the inverse check — **existing-test contract collision**: when the spec mutates a shape that already exists (a table column, enum member, registry entry, payload key, signature parameter), sweep the test tree for *closed-world* assertions over that shape — set equality, exact object equality, exact counts, snapshots, exhaustive case lists, and loops driven by the shape's *actual* members (which fail as a lookup error, not an assertion diff, and typically hide behind one of the others in the same test). Any such assertion breaks the moment the member is added, and test-authorship isolation bars the implementer from editing a test its story does not own, so the story deadlocks with a correct implementation and gives up.
+For every claim of the form "X has field Y" or "X(args) returns Z", open the actual source and compare. Includes interface field membership, function signatures, default values, enum members. Also runs the inverse check — **existing-test contract collision**: when the spec mutates a shape that already exists (a table column, enum member, registry entry, payload key, signature parameter), sweep the test tree for *closed-world* assertions over that shape — set equality, exact object equality, exact counts, snapshots, exhaustive case lists, and loops driven by the shape's *actual* members (which fail as a lookup error, not an assertion diff, and typically hide behind one of the others in the same test). Any such assertion breaks the moment the member is added, and a correct implementation cannot end clean: the implementer either rewrites a test its story does not own (silently dropping the contract it pinned) or leaves the gate red through every fix round until adjudication.
 
 **Blocker:** any structural claim contradicted by code (e.g. spec proposes per-AC `verifiedBy` but `acceptanceCriteria: string[]`); any closed-world assertion over a shape the spec mutates, where no AC and no `### Modifies` entry authorises the implementer to update that test (an out-of-scope deferral does not clear it — the gate still fails; a `Context Files` entry does not clear it either — that is a read list, not permission). A `Modifies` entry that is not grouped under a bold `**US-00N**` lead-in naming a story in this spec is dropped by `nax plan` and counts as absent.
 **Major:** a `Modifies` bullet declaring more than one path — only the leading backticked path becomes an entry, so the rest carry no authorisation (count paths, not bullets).
@@ -111,10 +113,10 @@ See [checklists/phase-4-behavioral-semantic.md](checklists/phase-4-behavioral-se
 
 See [checklists/phase-5-sizing-hygiene.md](checklists/phase-5-sizing-hygiene.md).
 
-Mechanical: AC counts per story, story counts, duplicate detection, story name ↔ body alignment, dependency DAG validity, **no story writes under `.nax/`** (a `Creates`/`Modifies` entry or an AC outcome under `.nax/` other than `.nax/scratchpad/` — nax state is read-only to the run; `Context Files` reads are fine), required sections present, **`## Out of Scope` machine-extractability** (recognised heading, one self-contained bullet per exclusion — `nax plan` parses this section into `prd.outOfScope`, and an unrecognised shape is silently dropped), and **placeholder sentinels in channel-reaching text** (`TBD`/`TODO`/`FIXME`/`???`, `handle … appropriately`/`as appropriate`, a trailing `etc.` in an AC, `similar to US-00N`, unnamed `add validation`/`add error handling` — in Stories/Design prose, AC bullets, Out-of-Scope bullets, or Modifies reasons, all of which are carried into the implementer prompt; a bare `TBD`/`None.`/`N/A` as the entire Out-of-Scope body is extractor-filtered and exempt), and **unrouted constraints** (a version floor, dependency ban, naming rule, or feature-scoped prohibition visible only in Design prose — no Out-of-Scope bullet, no covering AC, no Modifies entry, no rule-store home the spec points at; a mandate naming a specific code API is Phase 4's P4.7, a different check).
+Mechanical: AC counts per story (counted as assertions), story granularity (no story ceiling; at 8+ stories, the one-capability check), duplicate detection, story name ↔ body alignment, dependency DAG validity, **no story writes under `.nax/`** (a `Creates`/`Modifies` entry or an AC outcome under `.nax/` other than `.nax/scratchpad/` — nax state is read-only to the run; `Context Files` reads are fine), required sections present, **`## Out of Scope` machine-extractability** (recognised heading, one self-contained bullet per exclusion — `nax plan` parses this section into `prd.outOfScope`, and an unrecognised shape is silently dropped), and **placeholder sentinels in channel-reaching text** (`TBD`/`TODO`/`FIXME`/`???`, `handle … appropriately`/`as appropriate`, a trailing `etc.` in an AC, `similar to US-00N`, unnamed `add validation`/`add error handling` — in Stories/Design prose, AC bullets, Out-of-Scope bullets, or Modifies reasons, all of which are carried into the implementer prompt; a bare `TBD`/`None.`/`N/A` as the entire Out-of-Scope body is extractor-filtered and exempt), and **unrouted constraints** (a version floor, dependency ban, naming rule, or feature-scoped prohibition visible only in Design prose — no Out-of-Scope bullet, no covering AC, no Modifies entry, no rule-store home the spec points at; a mandate naming a specific code API is Phase 4's P4.7, a different check).
 
 **Blocker:** AC count exceeds project cap (load from `config.precheck.storySizeGate.maxAcCount` or default 15); a story that writes under `.nax/` (Step 7b).
-**Major:** missing required section; a deferral stated only in prose with no extractable `## Out of Scope` section; a placeholder sentinel in channel-reaching text; a captured constraint stated only in Design prose with no route.
+**Major:** too-granular stories that should merge (spec-writing Must-merge); a spec of 8+ stories that bundles independent capabilities (recommend one feature per capability); missing required section; a deferral stated only in prose with no extractable `## Out of Scope` section; a placeholder sentinel in channel-reaching text; a captured constraint stated only in Design prose with no route.
 
 ### Phase 6 — Stale-reference sweep
 
@@ -170,8 +172,8 @@ model.
 Consequences for the audit:
 - A spec `Context Files` entry produced by an **upstream dependency** story
   **belongs in** the consumer's `contextFiles` — it exists at the consumer's
-  runtime because dependencies run first (sequential: shared workdir; parallel:
-  each batch merges to `HEAD` before the next branches). If the planner kept it,
+  runtime because dependencies run first (one story at a time, shared workdir).
+  If the planner kept it,
   that is correct. If the planner **dropped** it or **mis-moved** it into the
   consumer's `expectedFiles`, that is a fidelity finding — the fix is in
   `nax plan` (`normalizeCreatedContextFiles` is now dependency-aware), not a

@@ -2,6 +2,24 @@
 
 How to write specs that produce high-quality PRDs and successful nax runs.
 
+## Execution model
+
+This guide targets nax **workflow mode**, the `nax run` default since v0.88.0. Per story, in
+dependency order and one at a time in a shared workdir: one implementer session writes the tests and
+the code, the deterministic gates run, one story review returns a spec verdict and a quality verdict,
+and bounded fix rounds (`workflow.maxFixRounds`) address its findings; the advisor rules on whatever
+is left. Per feature: one whole-branch review checks cross-story contracts, bounded branch-fix rounds
+(`workflow.maxBranchFixRounds`) follow, the advisor adjudicates the residual, and nax opens a PR —
+a draft when anything needs a human.
+
+Where this guide says *semantic review* or *adversarial review*, read the workflow story review and
+branch review: the reviewer still quotes the spec, the AC text and the story description, so every
+rule that exists to give a reviewer something to grade against applies unchanged.
+
+**Pipeline mode** (`execution.mode: "pipeline"`: separate test-writer, verifier, semantic and
+adversarial reviewers, an acceptance stage, parallel story batches) is deprecated and frozen. This
+guide no longer documents its behaviour where it differs.
+
 ## Structure
 
 A good spec has 6 sections. **All are required.**
@@ -239,7 +257,7 @@ Every AC must be **behavioral and independently testable**.
 |:-----|:----|:----|:------|:----------|
 | Simple | 3-5 | ≤50 | 1-2 | Single concern, purely additive |
 | Medium | 5-8 | 50-200 | 2-5 | Standard patterns, clear requirements |
-| Complex | 6-15 | 200-500 | 5+ | New abstractions, multiple modules |
+| Complex | 6 up to the project `maxAcCount` | 200-500 | 5+ | New abstractions, multiple modules |
 
 ### Hard splitting rules (no exceptions)
 
@@ -253,8 +271,8 @@ spec freely and is the documented cause of the US-005 drift.
     bullet asserting three things is three PRD ACs. A story that looks like 13 bullets can plan to 21
     (an observed story did exactly that; the feature went 45 → 64, +42%). Split compound
     ACs at authoring time and the spec count matches the PRD count. Independent reason to do it:
-    acceptance generates **one test per AC**, so a compound AC yields one test covering several
-    assertions — worse coverage and worse failure attribution when it fails.
+    the implementer and the story reviewer work **per AC**, so a compound AC tends to get one test
+    covering several assertions — worse coverage and worse failure attribution when it fails.
   - **The cap is per project, and 15 is only a fallback.** Observed values across a sample of real
     projects span **6** to **24** (a small library at 6, application projects at 15, a backend
     platform at 22, a data-heavy project at 24), so the
@@ -279,10 +297,24 @@ command in the story's verification note. This prevents the well-known attractor
 where additive slices land green and cleanup is silently dropped.
 
 **Merge if:**
-- Two stories share the same module and have <4 ACs each
+- Two stories share the same module and at least one has <4 ACs
 - A story only makes sense as part of another (e.g., "parse schema" is not useful without "validate against schema")
 
-**Target 3-7 stories per spec.** More than 7 usually means stories are too granular — each story should deliver a user-visible capability, not a single function.
+**No story ceiling — size the feature, not the story count.** Each story should deliver a
+capability, not a single function; that is what the merge rules above enforce. Beyond that, the
+count is whatever the capability structurally needs. Evidence from 58 workflow-mode runs:
+
+- Wall time and cost per story are flat (about 0.35 h and $0.45 per story from 2 to 17 stories), so
+  merging stories saves nothing by itself.
+- The **branch residual** — findings still open after the bounded branch-fix rounds, handed to the
+  advisor and then to a human in the PR — grows with size: 0 of 20 runs at ≤5 stories, 5 of 27 at
+  6–7, 4 of 11 at 8 or more. Four of the nine residual runs were bundles of unrelated hardening fixes.
+- Declared `### Modifies` + `Creates` paths undercount the files a run changes by about 2x (median;
+  1.2x–3.4x interquartile), so they cannot be used to predict branch size.
+
+So at **8 or more stories**, check the spec is one capability. A bundle of independent fixes or
+capabilities becomes one feature per capability; a coherent capability proceeds, accepting a higher
+chance of a draft PR.
 
 ## Context Hints (Required)
 
@@ -301,9 +333,8 @@ the consuming story's runtime.
 1. **Already on disk** — existing reference files (the common case).
 2. **Created by an upstream dependency** — a file a story this one `depends on`
    authors. It is absent at plan time but present at this story's runtime
-   (dependencies run first: sequential mode shares the workdir; parallel mode
-   merges each batch to `HEAD` before the next branches from it). Annotate it with
-   its producer so the hand-off is explicit.
+   (dependencies run first, one story at a time in a shared workdir). Annotate it
+   with its producer so the hand-off is explicit.
 
 ```markdown
 ### Context Files
@@ -732,7 +763,9 @@ Canonical example:
 3. **US-003: Runner integration** — depends on US-002
 ```
 
-nax executes stories in dependency order. Independent stories can run in parallel.
+nax executes stories one at a time in dependency order. Independent stories gain no concurrency, so
+declare a dependency only where one exists — it still orders the work and tells the reviewer which
+contract crosses the boundary.
 
 ## CLI Tools
 
@@ -768,7 +801,7 @@ When a feature introduces a new file format (config, schema, data), **specify th
 }
 ```
 
-Ambiguous formats → the agent guesses → the tests assert the wrong shape → rectification loop.
+Ambiguous formats → the agent guesses → the tests assert the wrong shape → fix-round loop.
 
 **Prefer JSON or YAML** for new file formats. Custom line-based formats (e.g., `KEY=type,modifier`) require the agent to write a parser from scratch — more code, more bugs, more ACs. JSON/YAML parsing is free with standard libraries.
 
@@ -800,7 +833,7 @@ signature is not enough — and on its own is actively harmful.
 `**Interface**` block from it. If the only shape you wrote down is the pre-change one, that
 is the shape the planner promotes, and the emitted interface then contradicts the story's own
 acceptance criteria. Reviewers quote the interface block; no test can reach it; the story
-burns rectification attempts and blocks. Note this needs no code fence — a plain bulleted
+burns its fix rounds and ends in adjudication. Note this needs no code fence — a plain bulleted
 list of verified signatures does it.
 
 ```markdown
@@ -867,7 +900,7 @@ Without this, the agent either ignores errors entirely or adds overly defensive 
 |:--------|:--------|:----|
 | Giant story (15+ ACs) | Agent gets confused, fails | Split into 2-3 focused stories |
 | "Make it work" AC | Untestable | Specify exact behavior |
-| Test-only story | Pipeline handles tests | Delete — each story gets tests automatically |
+| Test-only story | The implementer writes each story's tests | Delete — each story gets tests automatically |
 | Doc-only story | Not code | Put in analysis field or skip |
 | Quality gate AC | Already automatic | Remove from ACs |
 | Vague description | Agent guesses wrong | Include function signatures, types |
@@ -879,7 +912,8 @@ Without this, the agent either ignores errors entirely or adds overly defensive 
 | Baseline signature with no target | Planner promotes the pre-change shape into the story's interface, contradicting its own ACs | State a Baseline/Target pair, or state only the target |
 | Several caps, one AC each, no composition | Coverage looks complete; the cross-product cell is contested territory and the story never converges | State the order (usually a pipeline) plus one AC per observable interaction (Rule 13) |
 | No failure modes | Agent ignores errors or over-blocks | Specify fail-open/closed, retry, error output |
-| Too many stories | Overhead per story; tiny stories are fragile | Target 3-7 stories; merge if <4 ACs each |
+| Too-granular stories | Each pays a gates + review pass; tiny stories are fragile | Merge if they share a module and one has <4 ACs |
+| Bundle of unrelated work in one spec | One branch review over unrelated diffs; residual findings land on a human | One feature per capability (Story Sizing, 8+ stories check) |
 | Integration-only story | Duplicates ACs from earlier stories | Integration behavior belongs in the story that implements it |
 | Custom file format | Agent writes a fragile parser | Use JSON/YAML unless there's a strong reason not to |
 | "Single story with sub-deliverables" | `nax plan` re-decomposes freely and paraphrases load-bearing assertions (US-005 drift) | Pre-decompose into US-Xa/b/c with explicit dependencies — the planner becomes a verification step, not a decomposition step |

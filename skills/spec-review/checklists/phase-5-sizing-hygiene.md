@@ -1,10 +1,10 @@
 # Phase 5 — Sizing & Hygiene
 
-**Goal:** spec respects mechanical limits (AC counts, story counts) and stays internally clean (no duplicates, no orphans, story names match bodies).
+**Goal:** spec respects mechanical limits (AC counts per story), has no too-granular stories, and stays internally clean (no duplicates, no orphans, story names match bodies).
 
 **Blocker:** AC count exceeds project cap.
 
-This phase is fully mechanical — runs as shell commands with no LLM judgment.
+This phase is mechanical — shell commands with no LLM judgment — except the Step 3 one-capability check at 8+ stories.
 
 ## Step 1 — Determine the AC cap
 
@@ -21,9 +21,9 @@ Use the project's configured cap. If none found, default to **15** (matches the 
 awk '/^### US-/{if(s){print s": "c" ACs"} s=$0; c=0; next} /^- /{c++} END{if(s) print s": "c" ACs"}' <spec-path>
 ```
 
-For each story over the cap → **BLOCKER**.
+The awk counts bullets, which is a lower bound: spec-writing counts **assertions**, because `nax plan` splits a compound AC into one AC per assertion. For a story near the cap, re-count its compound bullets as assertions.
 
-For each story over the spec-writing.md soft limit (10) → **MINOR**, with a recommendation to consolidate.
+For each story over the cap (counted as assertions) → **BLOCKER**. There is no lower soft limit: a story within the cap is fine.
 
 ## Step 3 — Count stories
 
@@ -31,10 +31,16 @@ For each story over the spec-writing.md soft limit (10) → **MINOR**, with a re
 grep -c "^### US-" <spec-path>
 ```
 
-Target per spec-writing.md: **3–7 stories**. Outside that range:
-- **<3 stories** → minor (rare, usually fine)
-- **>7 stories** → minor with note: "consider whether stories are too granular; each story should deliver a user-visible capability, not a single function"
-- **>10 stories** → major
+There is **no story ceiling** (spec-writing guide § Story Sizing): in workflow mode, time and cost per
+story are flat, so the count alone is never a finding. Check granularity and cohesion instead:
+- **Too granular** — two stories share a module and one has <4 ACs, or one is meaningless without the
+  other → **MAJOR** (spec-writing Must-merge), recommend merging (unless the merge breaches a must-split rule).
+- **8 or more stories** → check the spec is **one capability**. If it bundles independent fixes or
+  capabilities → **MAJOR** (spec-writing Step 0 Multi-subsystem), recommend one feature per capability: the bundle ships under one branch
+  review and its residual findings land on a human. A coherent capability → no finding; note
+  "8+ stories: expect a higher chance of a draft PR" in the report.
+- Do not judge branch size from `### Modifies` + `Creates` counts; they undercount the files a run
+  changes by about 2x.
 
 ## Step 4 — Duplicate detection
 
