@@ -21,8 +21,10 @@
 //                               to the run" (Creates/Modifies only; Context Files
 //                               reads and .nax/scratchpad/ are allowed)
 //
-//   dependency-missing / dependency-conflict
+//   dependency-missing / dependency-conflict / dependency-forward
 //                            -> spec-review Phase 5 Step 6, spec-writing Phase 6
+//                               (forward = depends on a higher-numbered story;
+//                               guide "Story IDs follow dependency order")
 //   closes-invalid           -> spec-review Phase 5 Step 6b (token syntax only)
 //   dependency-fidelity      -> spec-review Phase 9 §3b (optional prd.json input)
 //
@@ -118,6 +120,10 @@ function dependencyDeclarations(rawLines) {
   return stories;
 }
 
+function storyNumber(id) {
+  return Number(/\d+/.exec(id)[0]);
+}
+
 function conflictingDependencies(lists) {
   return new Set(lists.map((list) => JSON.stringify(list))).size > 1;
 }
@@ -128,6 +134,11 @@ const CHECKS = {
 
   "dependency-conflict": (lines) =>
     [...dependencyDeclarations(lines).values()].some(conflictingDependencies),
+
+  "dependency-forward": (lines) =>
+    [...dependencyDeclarations(lines)].some(([id, lists]) =>
+      lists.flat().some((dep) => storyNumber(dep) > storyNumber(id)),
+    ),
 
   "closes-invalid": (rawLines) => withoutFences(rawLines).some((line) => {
     const declaration = /^\s*closes:(.*)$/i.exec(line);

@@ -707,6 +707,22 @@ story must not state both a dependency list and `No dependencies.`. Check for
 unknown IDs, self-dependencies, and cycles. Dependencies also determine whether
 an upstream-created file survives in a consumer's `contextFiles`.
 
+### Story IDs follow dependency order
+
+Number stories in the order they run: a story may depend only on
+**lower-numbered** stories. `nax plan` keeps the spec's IDs, and nax runs
+stories in dependency order, so a forward reference (US-001 depends on US-002)
+makes the run start at US-002 and leaves the numbers useless as a progress
+read-out ("US-003 is running, so 1-2 are done"). It is not a cycle — the graph
+is still valid — but it is a defect: renumber the stories so every dependency
+points backwards, and update every `US-00N` reference that moves (other stories'
+declarations, ACs, `Modifies` / `Context Files` / `Creates` reasons, Design
+comments such as `// (US-002)`).
+
+| RIGHT | WRONG |
+|:---|:---|
+| `1. **US-001: Config** — no dependencies` then `2. **US-002: Resolver** — depends on US-001` | `1. **US-001: Resolver** — depends on US-002` then `2. **US-002: Config** — no dependencies` |
+
 Canonical example:
 
 ```markdown

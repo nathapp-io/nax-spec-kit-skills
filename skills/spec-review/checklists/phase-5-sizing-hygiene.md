@@ -74,13 +74,18 @@ story-local declaration. Do not infer independence from missing syntax.
 For each story, record the declared dependency set and verify:
 - Every story explicitly names dependencies or states none, including a single-story spec.
 - All referenced stories exist; no self-dependencies or cycles.
+- Every dependency points to a lower-numbered story (IDs follow run order).
 - Repeated declarations agree as sets; no story states both none and a nonempty list.
 - The declared ordering supports the files and interfaces the story consumes.
 - Stories listed as independent actually need none (look for upstream-created files).
 
 Missing machine-readable statement → **MAJOR**. Unknown references,
 self-dependencies, cycles, or conflicting declarations → **BLOCKER**. A higher
-numeric story ID alone is not a cycle; evaluate the graph, not ID ordering.
+numeric story ID alone is not a cycle; evaluate the graph for cycles, not ID
+ordering. A dependency on a higher-numbered story (US-001 depends on US-002) →
+**MAJOR**: `nax plan` keeps the IDs and the run follows the graph, so the run
+starts out of numeric order. Fix: renumber the stories in dependency order and
+update every reference that moves.
 Phase 9 compares the explicit sets with the planned `dependencies` arrays.
 
 ## Step 6b — Issue closure declarations

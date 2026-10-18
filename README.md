@@ -143,10 +143,10 @@ the gate runs when that chain runs) executes `scripts/eval-mechanical.mjs`,
 which mirrors documented mechanical checks for the fixture shapes — a fixture fails when its
 expected check does not fire, or when anything unexpected fires, on any fixture.
 
-Coverage today includes **ten mechanical checks** (Step 8b Out-of-Scope shape,
+Coverage today includes **eleven mechanical checks** (Step 8b Out-of-Scope shape,
 Step 9b placeholder sentinels, Phase 7 banned tags, the marker-placement rule,
 the Modifies one-file-per-bullet rule, Step 7b no `Creates`/`Modifies` entry under
-`.nax/`, plus missing/conflicting story dependency declarations, invalid `Closes:`
+`.nax/`, plus missing/conflicting story dependency declarations, dependencies on a higher-numbered story, invalid `Closes:`
 tokens, and spec-to-PRD dependency sets). The declaration reader covers canonical
 fixture shapes; it does not replace nax's parser or a full spec review. This is
 not the whole mechanical surface (AC caps, duplicate ACs, required sections,
