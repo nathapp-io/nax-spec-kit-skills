@@ -1,10 +1,10 @@
 # Phase 5 — Sizing & Hygiene
 
-**Goal:** spec respects mechanical limits (AC counts, story counts) and stays internally clean (no duplicates, no orphans, story names match bodies).
+**Goal:** spec respects mechanical limits (AC counts per story), has no too-granular stories, and stays internally clean (no duplicates, no orphans, story names match bodies).
 
 **Blocker:** AC count exceeds project cap.
 
-This phase is fully mechanical — runs as shell commands with no LLM judgment.
+This phase is mechanical — shell commands with no LLM judgment — except the Step 3 one-capability check at 8+ stories.
 
 ## Step 1 — Determine the AC cap
 
@@ -21,9 +21,9 @@ Use the project's configured cap. If none found, default to **15** (matches the 
 awk '/^### US-/{if(s){print s": "c" ACs"} s=$0; c=0; next} /^- /{c++} END{if(s) print s": "c" ACs"}' <spec-path>
 ```
 
-For each story over the cap → **BLOCKER**.
+The awk counts bullets, which is a lower bound: spec-writing counts **assertions**, because `nax plan` splits a compound AC into one AC per assertion. For a story near the cap, re-count its compound bullets as assertions.
 
-For each story over the spec-writing.md soft limit (10) → **MINOR**, with a recommendation to consolidate.
+For each story over the cap (counted as assertions) → **BLOCKER**. There is no lower soft limit: a story within the cap is fine.
 
 ## Step 3 — Count stories
 
