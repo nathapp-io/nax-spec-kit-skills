@@ -24,7 +24,13 @@ Checks:
 1. **Every AC has a runtime mechanism.** ACs with no tag, an embedded command,
    or a `[grep]`/`[file]`/`[verbatim]` tag are flagged. Each AC must be a real
    runtime test (`[unit]`/`[integration]`/`[cli]`) an implementer can write
-   fail-first then make pass.
+   fail-first then make pass. **Exception — no-test stories:** a story marked
+   `**No-test:** <reason>` (docs, prose rule/skill files, config no test loads)
+   carries `[review]` ACs instead — artifact plus locus, the end state the reviewer
+   confirms from the diff, no shell, no "does not contain". **Blocker:** a story
+   with zero ACs (nax's PRD schema rejects it, no-test included); a `[review]` AC
+   in a story not marked **No-test:**; a **No-test:** story whose design has
+   runtime behaviour (split it). See the spec-writing guide's "No-test stories".
 2. **No file-content / grep / shell AC.** Any AC phrased as "file X contains /
    matches / does not contain Y," or containing shell commands or pipelines
    (`grep`, `wc`, `find`, `awk`, `sed`, shell pipe `|`, `$(...)`), is a
