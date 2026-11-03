@@ -130,9 +130,9 @@ For every "already shipped" / "DONE" / "MODIFY (additive)" claim, verify against
 
 See [checklists/phase-7-verification-anchor-lint.md](checklists/phase-7-verification-anchor-lint.md).
 
-Classify every AC's verification mechanism. Only **runtime** tags are valid — `[unit]`, `[integration]`, `[cli]`; `[grep]`, `[file]`, and `[verbatim]` are deprecated and banned. Checks that each AC is a real runtime test an implementer can write fail-first, that no AC is a file-content / shell assertion, that a new exported symbol carries a behavioural seam AC, that removals route to the build/static gate rather than an AC, and that every AC carries a **locus token** a reviewer could quote verbatim. Note the tags themselves do not survive `nax plan` (~97% are stripped), so the mechanism must also be legible from the AC's prose.
+Classify every AC's verification mechanism. Only **runtime** tags are valid — `[unit]`, `[integration]`, `[cli]` — plus `[review]` inside a story marked **No-test:** (docs/config; every story still needs at least one AC); `[grep]`, `[file]`, and `[verbatim]` are deprecated and banned. Checks that each AC is a real runtime test an implementer can write fail-first, that no AC is a file-content / shell assertion, that a new exported symbol carries a behavioural seam AC, that removals route to the build/static gate rather than an AC, and that every AC carries a **locus token** a reviewer could quote verbatim. Note the tags themselves do not survive `nax plan` (~97% are stripped), so the mechanism must also be legible from the AC's prose.
 
-**Blocker:** missing/invalid mechanism; `[grep]`/`[file]`/`[verbatim]` tag; file-content or shell AC; unpaired new exported symbol with no behavioral seam AC; removal/absence encoded as an AC; unbacked meta-AC.
+**Blocker:** missing/invalid mechanism; a story with zero ACs; `[review]` outside a **No-test:** story; `[grep]`/`[file]`/`[verbatim]` tag; file-content or shell AC; unpaired new exported symbol with no behavioral seam AC; removal/absence encoded as an AC; unbacked meta-AC.
 **Major:** AC with no locus token.
 
 ### Phase 8 — Seam & deletion audit

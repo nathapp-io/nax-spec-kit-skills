@@ -683,6 +683,8 @@ Every AC needs a verification mechanism. Tag each AC with one of:
 - `[unit]` — verified by a unit test
 - `[integration]` — verified by an integration test
 - `[cli]` — verified by running a CLI command and asserting exit code / output
+- `[review]` — verified by the reviewer reading the diff. **Only valid in a no-test
+  story** (see "No-test stories" below); a `[review]` AC anywhere else is a blocker
 
 **The two-anchor rule:** ACs verified only by `[unit]` on an isolated function
 do not prove the production path is wired. They satisfy the agent's "make
@@ -696,6 +698,42 @@ the production caller invokes it (see Seams above).
 ✅ **Two-track:**
 - `[unit]` "test adds a failing gate and asserts verifier slot does not dispatch"
 - `[integration]` stub `fullSuiteGateOp`; run the build plan; assert `fullSuiteGateOp` was invoked
+
+## No-test stories
+
+Some stories have no runtime behaviour to test: documentation, prose rule or
+skill files, CI/workflow configuration, editor or tool config no test loads.
+`nax plan` marks these `testStrategy: "no-test"`, and the implementer writes no
+tests. **They still need acceptance criteria.** nax's PRD schema rejects any story
+whose `acceptanceCriteria` is empty — no-test included — and the no-test
+implementer must map every AC to the change that satisfies it (`AC-N: <file>#<section>`)
+in its commit body, which the reviewer then checks. An AC-less no-test story is
+unplannable; a vague one is unreviewable.
+
+Declare the story no-test, with a one-line reason, under its title:
+
+```markdown
+**No-test:** documentation only; no code path reads this file.
+```
+
+Then write `[review]` ACs. Each one:
+
+- Names the **artifact and its locus** — file plus heading, key, job or step
+  (`README.md` "Install" section, `.github/workflows/ci.yml` job `lint`).
+- States the **end state** the reviewer confirms from the diff, one fact per AC
+  — what the artifact now says or configures, not the edit that gets it there.
+- Carries **no shell command** and no "does not contain" negative; a removal
+  still routes to the build/static gate as a verification note.
+
+✅ **No-test ACs:**
+- `[review]` `README.md` "Install" section documents the `--profile <name>` flag with one example invocation
+- `[review]` `.github/workflows/ci.yml` job `lint` runs on pull requests targeting `main`
+
+**Never mix.** A story with any runtime behaviour is not no-test: its ACs are
+`[unit]` / `[integration]` / `[cli]`, and a `[review]` AC in it is a blocker —
+split the prose or config change into its own no-test story. A deletion-only
+terminal-cleanup story is not no-test either: it keeps its behavioural
+"capability preserved" AC (see Removal & Migration ACs).
 
 ## Meta-ACs (architectural invariants)
 
