@@ -51,10 +51,11 @@ These thoughts mean stop — you are rationalizing:
 - **Required:** absolute path to the spec markdown file
 - **Optional:** path to project root if it cannot be inferred from the spec location
 - **Optional:** path to a generated `prd.json` (e.g. `.nax/features/<feature>/prd.json`). When passed, phases 7-9 (sizing+, seam+verification, PRD fidelity) run. Invocation: `/spec-review --spec <spec.md> --prd <prd.json>`.
+- **Optional, only with `--prd`:** `--phase 9` runs Phase 9 (PRD fidelity) alone, for a spec that already passed phases 1-8 before `nax plan`. Invocation: `/spec-review --spec <spec.md> --prd <prd.json> --phase 9`. `--phase` without `--prd`, or with any value other than `9`, is a usage error: stop and report `--phase 9 requires --prd <prd.json>` (or `only --phase 9 is supported`) without running any phase. See § Phase-9-only mode.
 
 ## Workflow
 
-The audit runs up to nine phases in order. Phases 1-6 always run; phases 7-9 run when applicable (large story → 7; new exported symbols → 8; `--prd` passed → 9). Each phase has a clear input/output contract and a defined blocker definition. **Do not skip phases** — earlier phases produce the symbol set / shape data that later phases consume.
+The audit runs up to nine phases in order. Phases 1-6 always run; phases 7-9 run when applicable (large story → 7; new exported symbols → 8; `--prd` passed → 9). Each phase has a clear input/output contract and a defined blocker definition. **Do not skip phases** — earlier phases produce the symbol set / shape data that later phases consume. The one exception is an explicit `--phase 9` request (§ Phase-9-only mode).
 
 ### Phase 1 — Symbol existence audit
 
@@ -145,12 +146,23 @@ Walks Design and Stories for producer/consumer seams and removal patterns. Every
 
 ### Phase 9 — PRD fidelity (only when `--prd` is passed)
 
+With `--phase 9`, this is the only phase that runs; see § Phase-9-only mode below.
+
 See [checklists/phase-9-prd-fidelity.md](checklists/phase-9-prd-fidelity.md).
 
 Diffs `prd.json` against the spec to detect drift introduced by `nax plan`: AC survival and behavioural degradation, story/dependency mapping, context-vs-expected file placement, meta-AC survival, **correction survival** (a spec-review correction must reach a `description` or an `acceptanceCriteria` entry — `analysis`, `storyPoints`, and `tags` are read by nothing and are not evidence), **PRD-AC satisfiability** (re-run the Class B trace over PRD invocation ACs, since `nax plan` splits compound ACs that Phase 8 never saw), **forward-reference drift re-sweep** (re-run Phase 1's consistency sweep over the PRD's `acceptanceCriteria` — atomic AC splitting rewords criteria and can introduce spelling drift the spec never had), out-of-scope preservation including the `US-00N only:` prefix rule, and terminal-cleanup integrity.
 
 **Blocker:** spec AC missing from PRD; behavioural AC degraded or stripped of its assertion; meta-AC deleted; orphan PRD AC introducing material scope; terminal-cleanup story missing or contaminated; self-`Creates` file in `contextFiles`; spec out-of-scope statement missing, inverted into an AC, or contradicted by a story.
 **Major:** upstream-produced `Context Files` entry dropped or mis-moved; a story-scoped deferral hoisted without a `US-00N only:` prefix; a correction present only in `analysis`; a spec `### Modifies` path with no `modifiedFiles` entry of its own (count paths, not bullets — a multi-path bullet authorises only its first); a forward-referenced symbol whose spelling drifted between the spec and a PRD acceptance criterion, or between two stories' PRD criteria.
+### Phase-9-only mode (`--phase 9`)
+
+An automated pipeline reviews the spec (phases 1-8), runs `nax plan`, then audits the PRD. By then the spec has already passed phases 1-6, and re-running them only re-reviews the spec: it produces new opinions on a spec that just passed (they vary between runs), reports them as if they were PRD findings, and no re-plan can fix them. `--phase 9` exists for that step.
+
+- Run Phase 9 only. Do not audit the spec against the codebase and do not report spec-level findings (symbol existence, shapes, rules, deadlock, story structure, sizing, seams) unless the PRD itself introduced the defect.
+- Phase 9 still needs what it consumes from the spec: its stories, ACs, dependencies, `### Context Files`, `### Creates`, `### Modifies`, `## Out of Scope`, and the forward-referenced symbols in its Design / new-work sections. Read them from the spec as written, treating the spec as already reviewed. The forward-reference re-sweep uses the symbols the spec names as its allowlist.
+- The report's **Phases run** line reads `1 of 9 (--phase 9: phases 1-8 skipped by request)`, and the Summary lists only Phase 9, so a clean result is never mistaken for a full audit.
+- Without `--phase`, behaviour is unchanged: phases 7-9 run with `--prd` after phases 1-6.
+
 ## Operational rules
 
 ### PRD file-role schema (Phase 9)
@@ -245,7 +257,7 @@ Produce a single markdown report:
 # Spec Review — <spec path>
 **Reviewed against:** <project root> at <git short SHA>
 **Date:** <YYYY-MM-DD>
-**Phases run:** <N of 9> (<reason if halted>; phases 7-9 conditional — see Workflow)
+**Phases run:** <N of 9> (<reason if halted>; phases 7-9 conditional — see Workflow; `1 of 9 (--phase 9: phases 1-8 skipped by request)` in Phase-9-only mode)
 **Verdict:** ✅ ready / ⚠️ revisions needed / ❌ major rework
 **Deadlock risk:** <N stories ❌ deadlock likely, M ⚠️ at risk, K ✅ clear — omit this line when Phase 4 did not run>
 
@@ -342,4 +354,4 @@ Do not run on every save during spec drafting.
 
 - **Phase 7** runs whenever the spec carries AC mechanism tags (`[unit]` / `[integration]` / `[cli]`), or whenever the host project has adopted the verification-anchor convention. The `[grep]`, `[file]`, and `[verbatim]` tags are **deprecated and banned** — flag every occurrence as a blocker and rewrite the AC into a runtime behaviour (or, for removals, a build/static-gate note).
 - **Phase 8** runs whenever the spec contains removal keywords (`delete|remove|consolidate|retire|rename`), introduces new exported symbols (interfaces, ops, builder methods), **contains any seam AC whose stubbed symbol and named entry point both already exist** (triggers the Class B seam-path reality check — note this condition is independent of the new-symbol one, since a pure extension spec introduces no new exports yet can still assert a false call path), has a story with both additive and destructive ACs, or has any AC (or `Interface` formula an AC rests on) that **derives a value** — renders, charts, aggregates, counts, filters, ratios, threshold-gated totals — from any producer contract, whether another story's, new in this spec, or existing code, or has any AC where a site **submits** a payload across a boundary it does not own — HTTP body/query, event or queue message, RPC args, subprocess argv, a file another component parses (both trigger the contract-seam check).
-- **Phase 9** runs whenever `--prd <path>` is passed. Without `--prd`, phase 9 is skipped silently.
+- **Phase 9** runs whenever `--prd <path>` is passed. Without `--prd`, phase 9 is skipped silently. With `--prd` and `--phase 9`, it is the only phase that runs.

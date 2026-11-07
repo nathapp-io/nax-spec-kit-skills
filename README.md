@@ -100,6 +100,7 @@ Both skills auto-activate on trigger phrases, or invoke them explicitly:
 /spec-writing <source>     # draft a SPEC-*.md from a brainstorm/source
 /spec-review <path>         # audit a spec against the codebase
 /spec-review --spec <spec.md> --prd <prd.json>   # also verify spec→PRD fidelity
+/spec-review --spec <spec.md> --prd <prd.json> --phase 9   # PRD fidelity only, for an already-reviewed spec
 ```
 
 You can also just say "draft the spec for X" or "review this spec against the codebase".
